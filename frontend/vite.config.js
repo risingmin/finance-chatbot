@@ -56,6 +56,9 @@ const htmlSanitizer = () => {
   };
 };
 
+// Handle production source maps
+const isProduction = process.env.NODE_ENV === 'production';
+
 export default defineConfig({
   plugins: [
     htmlSanitizer(), // Add this plugin before react()
@@ -65,7 +68,7 @@ export default defineConfig({
   root: process.cwd(),
   build: {
     outDir: 'dist',
-    sourcemap: false,
+    sourcemap: !isProduction,
     minify: true,
     emptyOutDir: true,
     // Add target for better browser compatibility
@@ -77,9 +80,17 @@ export default defineConfig({
         main: findIndexHtml()
       },
       output: {
-        manualChunks: undefined
+        manualChunks: (id) => {
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
+        }
       }
-    }
+    },
+    // Ensure the generated assets can be served correctly
+    assetsDir: 'assets',
+    // Generate sourcemaps for easier debugging
+    sourcemap: true
   },
   // Ensure environment variables are properly loaded
   envDir: '.',

@@ -4,9 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Finance Chatbot</title>
-    <link rel="icon" href="%PUBLIC_URL%/favicon.svg" />
+    <link rel="icon" href="/favicon.svg" />
+    <!-- Add meta tag to ensure proper rendering -->
+    <meta name="description" content="Personal Finance Chatbot powered by AI" />
 </head>
 <body>
-    <div id="root"></div>
+    <div id="root">
+        <!-- Fallback content if JavaScript fails to load -->
+        <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; font-family: Arial, sans-serif;">
+            <h2>Loading Finance Chatbot...</h2>
+            <p>If this message persists, please make sure JavaScript is enabled in your browser.</p>
+        </div>
+    </div>
+    <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>
