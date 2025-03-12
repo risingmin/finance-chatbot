@@ -6,14 +6,13 @@ import fs from 'fs';
 // Determine the base path from environment or use relative path
 const base = process.env.BASE_PATH || '/';
 
-// Try to find index.html in multiple possible locations
+// Simplified index.html finder
 const findIndexHtml = () => {
   const possiblePaths = [
-    resolve(__dirname, 'index.html'),
     resolve(__dirname, 'public/index.html'),
-    resolve(__dirname, '../index.html'),
-    resolve(process.cwd(), 'index.html'),
-    resolve(process.cwd(), 'public/index.html')
+    resolve(__dirname, 'index.html'),
+    resolve(process.cwd(), 'public/index.html'),
+    resolve(process.cwd(), 'index.html')
   ];
   
   for (const path of possiblePaths) {
@@ -24,81 +23,50 @@ const findIndexHtml = () => {
   }
   
   console.warn('index.html not found in expected locations!');
-  return resolve(__dirname, 'index.html'); // fallback to default
+  return resolve(__dirname, 'public/index.html'); 
 };
-
-// Custom plugin to handle malformed URIs in HTML
-const htmlSanitizer = () => {
-  return {
-    name: 'html-sanitizer',
-    enforce: 'pre',
-    transformIndexHtml(html) {
-      try {
-        // Basic sanitization for common URI issues
-        return html
-          // Fix common URI encoding issues
-          .replace(/%(?![0-9A-Fa-f]{2})/g, '%25')
-          // Handle problematic characters in URLs
-          .replace(/(\bhref=["']|\bsrc=["'])[^"'\s>]*(%(?![0-9A-Fa-f]{2})|[^\w\-.~:/?#\[\]@!$&'()*+,;=])/g, (match, prefix, badChar) => {
-            const url = match.slice(prefix.length);
-            try {
-              return prefix + encodeURI(decodeURI(url));
-            } catch (e) {
-              // If decoding fails, manually encode the URL
-              return prefix + encodeURI(url);
-            }
-          });
-      } catch (e) {
-        console.warn('Error sanitizing HTML:', e);
-        return html; // Return original if sanitization fails
-      }
-    }
-  };
-};
-
-// Handle production source maps
-const isProduction = process.env.NODE_ENV === 'production';
 
 export default defineConfig({
   plugins: [
-    htmlSanitizer(), // Add this plugin before react()
-    react()
+    react({
+      // Make sure React works correctly in production
+      jsxRuntime: 'automatic',
+      babel: {
+        // Add proper Babel plugins if needed
+        plugins: []
+      }
+    })
   ],
-  // Specify the project root directory
-  root: process.cwd(),
+  resolve: {
+    alias: {
+      // Add any path aliases you need
+    }
+  },
   build: {
     outDir: 'dist',
-    sourcemap: !isProduction,
-    minify: true,
+    minify: 'terser',
+    sourcemap: true, // Keep sourcemaps for debugging
     emptyOutDir: true,
-    // Add target for better browser compatibility
-    target: 'es2015',
-    // Configure chunk size policy
-    chunkSizeWarningLimit: 1600,
+    // Use more compatible build settings
+    target: ['es2015', 'edge88', 'firefox78', 'chrome87', 'safari13'],
     rollupOptions: {
       input: {
         main: findIndexHtml()
       },
       output: {
-        manualChunks: (id) => {
-          if (id.includes('node_modules')) {
-            return 'vendor';
-          }
-        }
+        // Use named chunks for better debugging
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]'
       }
-    },
-    // Ensure the generated assets can be served correctly
-    assetsDir: 'assets',
-    // Generate sourcemaps for easier debugging
-    sourcemap: true
+    }
   },
-  // Ensure environment variables are properly loaded
-  envDir: '.',
-  // Set base path dynamically
   base: base,
   server: {
-    host: true, // needed for the Docker Container port mapping to work
+    host: true,
     strictPort: true,
-    port: process.env.PORT || 5173, // you can replace this port with any port
-  }
+    port: process.env.PORT || 5173,
+  },
+  // Add clear console.log for build progress
+  logLevel: 'info'
 });

@@ -5,8 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Finance Chatbot</title>
     <link rel="icon" href="/favicon.svg" />
-    <!-- Add meta tag to ensure proper rendering -->
     <meta name="description" content="Personal Finance Chatbot powered by AI" />
+    <!-- Add basic initialization timeout detection -->
+    <script>
+        window.appInitTimeout = setTimeout(function() {
+            console.error('App initialization timeout - showing error message');
+            var rootElem = document.getElementById('root');
+            if (rootElem && rootElem.innerHTML.includes('Loading Finance Chatbot')) {
+                rootElem.innerHTML = `
+                    <div style="text-align:center; padding:20px; font-family:Arial,sans-serif; max-width:600px; margin:40px auto;">
+                        <h2 style="color:#dc3545">App Failed to Load</h2>
+                        <p>The application couldn't initialize properly. This might be due to:</p>
+                        <ul style="text-align:left; line-height:1.6;">
+                            <li>A JavaScript error during initialization</li>
+                            <li>Network issues loading required resources</li>
+                            <li>Browser compatibility issues</li>
+                        </ul>
+                        <div style="margin-top:20px;">
+                            <button onclick="window.location.reload()" style="padding:10px 20px; background:#007bff; color:white; border:none; border-radius:4px; cursor:pointer;">
+                                Try Reloading
+                            </button>
+                        </div>
+                        <p style="margin-top:20px; font-size:14px; color:#666;">
+                            If the problem persists, try clearing your browser cache or using a different browser.
+                        </p>
+                    </div>
+                `;
+            }
+        }, 10000); // Show error after 10 seconds of no initialization
+    </script>
 </head>
 <body>
     <div id="root">
@@ -16,6 +43,7 @@
             <p>If this message persists, please make sure JavaScript is enabled in your browser.</p>
         </div>
     </div>
+    <!-- Changed to a simpler script tag for better compatibility -->
     <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>

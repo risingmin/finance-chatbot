@@ -2,12 +2,13 @@
   "name": "finance-chatbot",
   "version": "1.0.0",
   "description": "A personal finance chatbot that utilizes the Llama model.",
-  "main": "index.js",
+  "main": "src/main.jsx",
   "scripts": {
     "start": "vite",
     "prebuild": "node scripts/prepare-html.js",
-    "build": "vite build --debug",
-    "serve": "vite preview"
+    "build": "vite build",
+    "serve": "vite preview",
+    "debug": "vite --debug"
   },
   "dependencies": {
     "react": "^18.2.0",

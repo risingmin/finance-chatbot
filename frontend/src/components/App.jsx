@@ -1,25 +1,30 @@
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import ErrorBoundary from './ErrorBoundary';
-import ChatInterface from './ChatInterface';
-import FinanceTools from './FinanceTools';
-import Sidebar from './Sidebar';
-import HomePage from './HomePage';
+// Use dynamic imports to reduce initial load size
+const ChatInterface = React.lazy(() => import('./ChatInterface'));
+const FinanceTools = React.lazy(() => import('./FinanceTools'));
+const Sidebar = React.lazy(() => import('./Sidebar'));
+const HomePage = React.lazy(() => import('./HomePage'));
 import '../styles/components.css';
 
 // Loading fallback component
 const LoadingFallback = () => (
     <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh'}}>
-        <p>Loading...</p>
+        <p>Loading component...</p>
     </div>
 );
 
+// Simpler App component with better error handling
 const App = () => {
+    console.log('App component rendering');
     return (
         <ErrorBoundary>
             <Router>
                 <div className="app-container">
-                    <Sidebar />
+                    <Suspense fallback={<LoadingFallback />}>
+                        <Sidebar />
+                    </Suspense>
                     <div className="main-content">
                         <Suspense fallback={<LoadingFallback />}>
                             <Routes>
@@ -38,7 +43,6 @@ const App = () => {
                                         <HomePage />
                                     </ErrorBoundary>
                                 } />
-                                {/* Catch all other routes and redirect to home */}
                                 <Route path="*" element={<Navigate to="/" replace />} />
                             </Routes>
                         </Suspense>
