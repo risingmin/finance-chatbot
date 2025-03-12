@@ -1,18 +1,15 @@
-// filepath: /Users/sungminlee/finance-chatbot-2/frontend/vite.config.js
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  server: {
-    proxy: {
-      '/api': {
-        target: 'http://localhost:5000',
-        changeOrigin: true,
-      },
-    },
-  },
   build: {
     outDir: 'dist',
+    sourcemap: false,
+    minify: true,
   },
+  // Ensure environment variables are properly loaded
+  envDir: '.',
+  // Add base path if deploying to a subdirectory
+  // base: './'
 });
