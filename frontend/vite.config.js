@@ -27,8 +27,40 @@ const findIndexHtml = () => {
   return resolve(__dirname, 'index.html'); // fallback to default
 };
 
+// Custom plugin to handle malformed URIs in HTML
+const htmlSanitizer = () => {
+  return {
+    name: 'html-sanitizer',
+    enforce: 'pre',
+    transformIndexHtml(html) {
+      try {
+        // Basic sanitization for common URI issues
+        return html
+          // Fix common URI encoding issues
+          .replace(/%(?![0-9A-Fa-f]{2})/g, '%25')
+          // Handle problematic characters in URLs
+          .replace(/(\bhref=["']|\bsrc=["'])[^"'\s>]*(%(?![0-9A-Fa-f]{2})|[^\w\-.~:/?#\[\]@!$&'()*+,;=])/g, (match, prefix, badChar) => {
+            const url = match.slice(prefix.length);
+            try {
+              return prefix + encodeURI(decodeURI(url));
+            } catch (e) {
+              // If decoding fails, manually encode the URL
+              return prefix + encodeURI(url);
+            }
+          });
+      } catch (e) {
+        console.warn('Error sanitizing HTML:', e);
+        return html; // Return original if sanitization fails
+      }
+    }
+  };
+};
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    htmlSanitizer(), // Add this plugin before react()
+    react()
+  ],
   // Specify the project root directory
   root: process.cwd(),
   build: {
