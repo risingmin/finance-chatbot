@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 const useChatApi = () => {
     const [messages, setMessages] = useState([]);
@@ -8,7 +10,7 @@ const useChatApi = () => {
     const sendMessage = async (message) => {
         setLoading(true);
         try {
-            const response = await fetch('/api/chat', {
+            const response = await fetch(`${API_URL}/api/chat`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
