@@ -29,10 +29,8 @@ const findIndexHtml = () => {
 export default defineConfig({
   plugins: [
     react({
-      // Make sure React works correctly in production
       jsxRuntime: 'automatic',
       babel: {
-        // Add proper Babel plugins if needed
         plugins: []
       }
     })
@@ -44,17 +42,16 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
-    minify: 'terser',
-    sourcemap: true, // Keep sourcemaps for debugging
+    // Use esbuild minifier as a fallback if terser installation is problematic
+    minify: process.env.USE_ESBUILD ? 'esbuild' : 'terser',
+    sourcemap: true,
     emptyOutDir: true,
-    // Use more compatible build settings
     target: ['es2015', 'edge88', 'firefox78', 'chrome87', 'safari13'],
     rollupOptions: {
       input: {
         main: findIndexHtml()
       },
       output: {
-        // Use named chunks for better debugging
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]'
@@ -67,6 +64,5 @@ export default defineConfig({
     strictPort: true,
     port: process.env.PORT || 5173,
   },
-  // Add clear console.log for build progress
   logLevel: 'info'
 });
