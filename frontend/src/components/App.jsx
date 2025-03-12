@@ -1,9 +1,9 @@
 import React from 'react';
-import { BrowserRouter as Router, Route, Switch } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import ChatInterface from './ChatInterface';
 import FinanceTools from './FinanceTools';
 import Sidebar from './Sidebar';
-import './styles/components.css';
+import '../styles/components.css';
 
 const App = () => {
     return (
@@ -11,13 +11,13 @@ const App = () => {
             <div className="app-container">
                 <Sidebar />
                 <div className="main-content">
-                    <Switch>
-                        <Route path="/chat" component={ChatInterface} />
-                        <Route path="/finance-tools" component={FinanceTools} />
-                        <Route path="/" exact>
+                    <Routes>
+                        <Route path="/chat" element={<ChatInterface />} />
+                        <Route path="/finance-tools" element={<FinanceTools />} />
+                        <Route path="/" element={
                             <h1>Welcome to the Personal Finance Chatbot</h1>
-                        </Route>
-                    </Switch>
+                        } />
+                    </Routes>
                 </div>
             </div>
         </Router>
