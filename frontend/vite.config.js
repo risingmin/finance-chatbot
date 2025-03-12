@@ -1,11 +1,36 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { resolve } from 'path';
+import fs from 'fs';
 
 // Determine the base path from environment or use relative path
 const base = process.env.BASE_PATH || '/';
 
+// Try to find index.html in multiple possible locations
+const findIndexHtml = () => {
+  const possiblePaths = [
+    resolve(__dirname, 'index.html'),
+    resolve(__dirname, 'public/index.html'),
+    resolve(__dirname, '../index.html'),
+    resolve(process.cwd(), 'index.html'),
+    resolve(process.cwd(), 'public/index.html')
+  ];
+  
+  for (const path of possiblePaths) {
+    if (fs.existsSync(path)) {
+      console.log(`Found index.html at: ${path}`);
+      return path;
+    }
+  }
+  
+  console.warn('index.html not found in expected locations!');
+  return resolve(__dirname, 'index.html'); // fallback to default
+};
+
 export default defineConfig({
   plugins: [react()],
+  // Specify the project root directory
+  root: process.cwd(),
   build: {
     outDir: 'dist',
     sourcemap: false,
@@ -16,6 +41,9 @@ export default defineConfig({
     // Configure chunk size policy
     chunkSizeWarningLimit: 1600,
     rollupOptions: {
+      input: {
+        main: findIndexHtml()
+      },
       output: {
         manualChunks: undefined
       }
