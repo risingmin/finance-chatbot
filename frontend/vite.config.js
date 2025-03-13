@@ -1,13 +1,12 @@
 import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import reactRefresh from '@vitejs/plugin-react-refresh';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [reactRefresh()],
+  server: {
+    port: 3000,
+  },
   build: {
     outDir: 'dist',
-    sourcemap: true,
-    emptyOutDir: true
   },
-  // This is critical for proper asset paths in production
-  base: '/'
 });
