@@ -1,8 +1,25 @@
-// ...existing code...
+const express = require('express');
+const cors = require('cors');
 
-// Add a root route if missing
+const app = express();
+const PORT = process.env.PORT || 3000; // Using port 3000 instead of 5000
+
+// Enable CORS for frontend
+app.use(cors({
+  origin: 'http://localhost:5173', // Default Vite dev server port
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Parse JSON request bodies
+app.use(express.json());
+
+// Root route
 app.get('/', (req, res) => {
-  res.send('Finance Chatbot API is running');
+  res.json({ message: 'Backend API is running!' });
 });
 
-// ...existing code...
+// Start the server
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
