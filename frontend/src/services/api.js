@@ -13,4 +13,13 @@ api.interceptors.response.use(
   }
 );
 
+// Test request to check connection
+api.get('/test')
+  .then(response => {
+    console.log('Test request successful:', response.data);
+  })
+  .catch(error => {
+    console.error('Test request failed:', error);
+  });
+
 export default api;
