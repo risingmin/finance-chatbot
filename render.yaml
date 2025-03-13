@@ -3,8 +3,8 @@ services:
   - type: web
     name: finance-chatbot
     runtime: static
-    buildCommand: npm install && npm run build-frontend
-    publishDir: frontend/dist
+    buildCommand: npm install && npm run build
+    publishDir: dist
     envVars:
       - key: VITE_API_URL
         value: https://finance-chatbot-api.onrender.com
