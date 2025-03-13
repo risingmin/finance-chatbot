@@ -1,6 +1,8 @@
 import React from 'react';
-import { createRoot } from 'react-dom/client';
-import './styles/global.css';
+import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import App from './App';
+import './index.css';
 
 // Clear the initialization timeout
 if (window.appInitTimeout) {
@@ -20,18 +22,13 @@ const renderBasicApp = () => {
 
   try {
     // Create a very simple app first to verify React is working
-    const root = createRoot(container);
+    const root = ReactDOM.createRoot(container);
     root.render(
-      <div className="debug-container" style={{ 
-        padding: '20px', 
-        fontFamily: 'Arial, sans-serif',
-        maxWidth: '800px',
-        margin: '0 auto',
-        textAlign: 'center'
-      }}>
-        <h1>Finance Chatbot</h1>
-        <p>Basic initialization successful. Loading full application...</p>
-      </div>
+      <React.StrictMode>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </React.StrictMode>
     );
     
     console.log('Basic app rendered successfully');
