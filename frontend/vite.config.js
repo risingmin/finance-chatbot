@@ -23,8 +23,6 @@ export default defineConfig({
     port: 3000,
     strictPort: true,
     host: true
-  },
-  esbuild: {
-    jsxInject: `import React from 'react'`
   }
+  // Removed the esbuild.jsxInject config that was causing duplicate React declarations
 });
