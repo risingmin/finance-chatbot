@@ -18,6 +18,18 @@ export default defineConfig({
   server: {
     port: 3000,
     strictPort: true,
-    host: true
+    host: true,
+    proxy: {
+      // Configure proxy for development
+      '/api': {
+        target: 'https://finance-chatbot-api.onrender.com',
+        changeOrigin: true,
+        secure: true
+      }
+    }
+  },
+  // Make environment variables available
+  define: {
+    'process.env': process.env
   }
 });

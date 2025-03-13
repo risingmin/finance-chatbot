@@ -1,30 +1,62 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
 const ChatPage = () => {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Configure API URL - update this to your actual backend URL
+  const API_URL = process.env.REACT_APP_API_URL || 'https://finance-chatbot-api.onrender.com/api/chat';
+  
+  // Log the API URL for debugging
+  useEffect(() => {
+    console.log('Using API URL:', API_URL);
+  }, [API_URL]);
 
-  const handleSendMessage = (e) => {
+  const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
     
     // Add user message
     const userMessage = { id: Date.now(), text: input, sender: 'user' };
     setMessages(prev => [...prev, userMessage]);
+    const userInput = input;
     setInput('');
     
-    // Simulate bot response
+    // Send to backend
     setIsLoading(true);
-    setTimeout(() => {
+    try {
+      const response = await axios.post(API_URL, {
+        message: userInput,
+      }, {
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        }
+      });
+      
+      console.log('Response from API:', response.data);
+      
+      // Add bot response from the API
       const botMessage = { 
         id: Date.now() + 1, 
-        text: "This is a placeholder response from the finance bot.", 
+        text: response.data.response || "Sorry, I couldn't process your request.", 
         sender: 'bot' 
       };
       setMessages(prev => [...prev, botMessage]);
+    } catch (error) {
+      console.error('Error getting response from chatbot:', error);
+      // Add error message
+      const errorMessage = { 
+        id: Date.now() + 1, 
+        text: "Sorry, there was an error processing your request. Please try again later.", 
+        sender: 'bot' 
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -52,7 +84,7 @@ const ChatPage = () => {
             placeholder="Ask about personal finance..."
             className="message-input"
           />
-          <button type="submit" className="send-button">
+          <button type="submit" className="send-button" disabled={isLoading}>
             Send
           </button>
         </form>
