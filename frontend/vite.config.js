@@ -1,29 +1,23 @@
 import { defineConfig } from 'vite';
-import reactRefresh from '@vitejs/plugin-react-refresh';
+import react from '@vitejs/plugin-react';
 import path from 'path';
 
 export default defineConfig({
-  plugins: [reactRefresh()],
+  plugins: [react()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src')
+      '@': path.resolve(__dirname, 'src')
     },
     extensions: ['.js', '.jsx', '.ts', '.tsx', '.json']
   },
   build: {
     outDir: 'dist',
     sourcemap: true,
-    rollupOptions: {
-      external: [],
-      output: {
-        manualChunks: undefined
-      }
-    }
+    chunkSizeWarningLimit: 1600
   },
   server: {
     port: 3000,
     strictPort: true,
     host: true
   }
-  // Removed the esbuild.jsxInject config that was causing duplicate React declarations
 });
