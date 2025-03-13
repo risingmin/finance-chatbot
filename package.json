@@ -10,9 +10,13 @@
       "install-backend": "cd backend && npm install",
       "build-frontend": "cd frontend && npm run build",
       "start-backend": "cd backend && npm start",
+      "dev-backend": "cd backend && PORT=8000 npm start",
+      "dev-frontend": "cd frontend && npm run dev",
+      "dev": "cd frontend && npm run dev",
+      "build": "npm run build-frontend",
       "start": "npm run start-backend"
     },
     "engines": {
       "node": ">=14.0.0"
     }
-  }
+}
