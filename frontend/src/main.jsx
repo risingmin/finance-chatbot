@@ -1,8 +1,8 @@
 import React from 'react';
-import ReactDOM from 'react-dom/client'; // Ensure this import is correct
+import ReactDOM from 'react-dom'; // Changed from react-dom/client to react-dom
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
-import './index.css'; // This import should now work properly
+import './index.css';
 
 // Clear the initialization timeout
 if (window.appInitTimeout) {
@@ -19,13 +19,14 @@ const renderApp = () => {
   }
 
   try {
-    const root = ReactDOM.createRoot(container);
-    root.render(
+    // Using React 17's render method instead of createRoot
+    ReactDOM.render(
       <React.StrictMode>
         <BrowserRouter>
           <App />
         </BrowserRouter>
-      </React.StrictMode>
+      </React.StrictMode>,
+      container
     );
     console.log('App rendered successfully');
   } catch (error) {
