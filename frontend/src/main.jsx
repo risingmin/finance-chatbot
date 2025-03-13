@@ -1,7 +1,7 @@
 import React from 'react';
-import ReactDOM from 'react-dom'; // Changed from react-dom/client to react-dom
+import ReactDOM from 'react-dom';
 import { BrowserRouter } from 'react-router-dom';
-import App from './App';
+import { App } from './App'; // Changed from default import to named import
 import './index.css';
 
 // Clear the initialization timeout
