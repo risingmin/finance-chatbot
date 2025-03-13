@@ -1,9 +1,10 @@
 services:
+  # Frontend static site configuration
   - type: web
     name: finance-chatbot
     runtime: static
-    buildCommand: npm install && npm run build
-    publishDir: dist
+    buildCommand: npm install && npm run build-frontend
+    publishDir: frontend/dist
     envVars:
       - key: VITE_API_URL
         value: https://finance-chatbot-api.onrender.com
@@ -11,3 +12,15 @@ services:
       - type: rewrite
         source: /*
         destination: /index.html
+  
+  # Backend API service configuration
+  - type: web
+    name: finance-chatbot-api
+    runtime: node
+    buildCommand: npm install && cd backend && npm install
+    startCommand: npm run start-backend
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000

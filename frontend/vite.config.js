@@ -56,9 +56,11 @@ export default defineConfig({
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]'
       }
-    }
+    },
+    // Make sure assets use relative paths
+    assetsDir: 'assets',
   },
-  base: base,
+  base: '',
   server: {
     host: true,
     strictPort: true,
