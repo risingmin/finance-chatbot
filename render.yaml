@@ -3,6 +3,7 @@ services:
   - type: web
     name: finance-chatbot
     runtime: static
+    rootDir: frontend
     buildCommand: npm install && npm run build
     publishDir: dist
     envVars:
@@ -17,8 +18,9 @@ services:
   - type: web
     name: finance-chatbot-api
     runtime: node
-    buildCommand: npm install && cd backend && npm install
-    startCommand: npm run start-backend
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
