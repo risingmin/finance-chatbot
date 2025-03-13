@@ -1,17 +1,18 @@
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
-import ChatPage from '@/pages/ChatPage';
-// import any other components you need
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import ChatPage from './pages/ChatPage';
 
-function App() {
+const App = () => {
   return (
-    <div className="app">
-      <Routes>
-        <Route path="/" element={<ChatPage />} />
-        {/* Add any other routes here */}
-      </Routes>
-    </div>
+    <Router>
+      <div className="app-container">
+        <Routes>
+          <Route path="/chat" element={<ChatPage />} />
+          <Route path="/" element={<Navigate to="/chat" replace />} />
+        </Routes>
+      </div>
+    </Router>
   );
-}
+};
 
-export default App; // Make sure App is exported as default
+export default App;
