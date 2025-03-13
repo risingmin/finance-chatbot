@@ -1,81 +1,91 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
-import App from './components/App';
 import './styles/global.css';
 
-// Clear the initialization timeout when app starts
+// Clear the initialization timeout
 if (window.appInitTimeout) {
   clearTimeout(window.appInitTimeout);
-  console.log('App initialization started, clearing timeout');
+  console.log('App initialization started, cleared timeout');
 }
 
-console.log('main.jsx: Starting app initialization');
+console.log('main.jsx: Starting initialization - simplified version');
 
-// Ensure the DOM is ready
-const renderApp = () => {
+// Simplified initial render to debug the issue
+const renderBasicApp = () => {
+  const container = document.getElementById('root');
+  if (!container) {
+    console.error('Root container not found!');
+    return;
+  }
+
   try {
-    console.log('main.jsx: Trying to render app');
-    const container = document.getElementById('root');
-    
-    if (!container) {
-      console.error('Root container not found! Check your HTML for an element with id "root"');
-      return;
-    }
-    
-    // Simplified rendering approach
+    // Create a very simple app first to verify React is working
     const root = createRoot(container);
+    root.render(
+      <div className="debug-container" style={{ 
+        padding: '20px', 
+        fontFamily: 'Arial, sans-serif',
+        maxWidth: '800px',
+        margin: '0 auto',
+        textAlign: 'center'
+      }}>
+        <h1>Finance Chatbot</h1>
+        <p>Basic initialization successful. Loading full application...</p>
+      </div>
+    );
     
-    console.log('main.jsx: Root created, rendering app');
+    console.log('Basic app rendered successfully');
     
-    root.render(<App />);
-    
-    console.log('App rendered successfully');
+    // After a brief delay, try to load the full app
+    setTimeout(() => {
+      import('./components/App').then(({ default: App }) => {
+        try {
+          console.log('Attempting to render full App component');
+          root.render(<App />);
+          console.log('Full App rendered successfully');
+        } catch (error) {
+          console.error('Error rendering full App:', error);
+          root.render(
+            <div style={{ padding: '20px', textAlign: 'center' }}>
+              <h2>Error Loading Application</h2>
+              <p>There was an error loading the application components.</p>
+              <p style={{ color: 'red' }}>{error.message}</p>
+              <button onClick={() => window.location.reload()}>Try Again</button>
+            </div>
+          );
+        }
+      }).catch(error => {
+        console.error('Error importing App component:', error);
+        root.render(
+          <div style={{ padding: '20px', textAlign: 'center' }}>
+            <h2>Error Loading Application</h2>
+            <p>Could not load the main application component.</p>
+            <p style={{ color: 'red' }}>{error.message}</p>
+            <button onClick={() => window.location.reload()}>Try Again</button>
+          </div>
+        );
+      });
+    }, 500);
   } catch (error) {
-    console.error('Error rendering app:', error);
-    
-    // Display fallback error UI
-    const errorDiv = document.createElement('div');
-    errorDiv.innerHTML = `
-      <div style="text-align: center; padding: 20px; font-family: sans-serif;">
-        <h2>Something went wrong</h2>
-        <p>The app couldn't be started. Please try refreshing the page.</p>
-        <p>Error: ${error.message || 'Unknown error'}</p>
+    console.error('Failed to initialize React:', error);
+    document.body.innerHTML = `
+      <div style="padding: 20px; text-align: center;">
+        <h2>Critical Error</h2>
+        <p>React failed to initialize: ${error.message}</p>
         <button onclick="window.location.reload()">Refresh</button>
       </div>
     `;
-    
-    const rootElement = document.getElementById('root');
-    if (rootElement) {
-      rootElement.innerHTML = '';
-      rootElement.appendChild(errorDiv);
-    } else {
-      document.body.appendChild(errorDiv);
-    }
   }
 };
 
-// Make sure we render when the DOM is ready
+// Start rendering process
 if (document.readyState === 'loading') {
-  console.log('main.jsx: Document still loading, waiting for DOMContentLoaded');
-  document.addEventListener('DOMContentLoaded', renderApp);
+  document.addEventListener('DOMContentLoaded', renderBasicApp);
 } else {
-  console.log('main.jsx: Document already loaded, rendering immediately');
-  renderApp();
+  renderBasicApp();
 }
 
-// Add window error handler for uncaught errors
+// Add window error handler
 window.addEventListener('error', (event) => {
   console.error('Global error caught:', event.error);
-  
-  // Show error message if it's during initialization
-  if (document.getElementById('root')?.innerHTML.includes('Loading Finance Chatbot')) {
-    document.getElementById('root').innerHTML = `
-      <div style="padding: 20px; text-align: center;">
-        <h2>Application Error</h2>
-        <p>Sorry, something went wrong while loading the application.</p>
-        <p>Error: ${event.error?.message || 'Unknown error'}</p>
-        <button onclick="window.location.reload()">Try Again</button>
-      </div>
-    `;
-  }
 });

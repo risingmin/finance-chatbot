@@ -6,10 +6,26 @@
     <title>Finance Chatbot</title>
     <link rel="icon" href="/favicon.svg" />
     <meta name="description" content="Personal Finance Chatbot powered by AI" />
-    <!-- Add basic initialization timeout detection -->
+    <!-- Basic styling to ensure something displays even without CSS -->
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+        }
+        .loading-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+    </style>
+    <!-- Shorter timeout for better user experience -->
     <script>
         window.appInitTimeout = setTimeout(function() {
-            console.error('App initialization timeout - showing error message');
+            console.error('App initialization timeout');
             var rootElem = document.getElementById('root');
             if (rootElem && rootElem.innerHTML.includes('Loading Finance Chatbot')) {
                 rootElem.innerHTML = `
@@ -32,18 +48,16 @@
                     </div>
                 `;
             }
-        }, 10000); // Show error after 10 seconds of no initialization
+        }, 8000); // 8 second timeout
     </script>
 </head>
 <body>
     <div id="root">
-        <!-- Fallback content if JavaScript fails to load -->
-        <div style="display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; font-family: Arial, sans-serif;">
+        <div class="loading-container">
             <h2>Loading Finance Chatbot...</h2>
             <p>If this message persists, please make sure JavaScript is enabled in your browser.</p>
         </div>
     </div>
-    <!-- Changed to a simpler script tag for better compatibility -->
     <script type="module" src="/src/main.jsx"></script>
 </body>
 </html>
