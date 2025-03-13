@@ -115,12 +115,12 @@ const ChatPage = () => {
       <h1>Finance Assistant</h1>
       
       {apiStatus === 'error' && (
-        <div className="api-status error"></div>
+        <div className="api-status error">
           Cannot connect to backend API. Please check your connection and try again.
         </div>
       )}
       
-      <div className="chat-container"></div>
+      <div className="chat-container">
         <div className="messages-container">
           {messages.map((message) => (
             <div 
