@@ -3,12 +3,17 @@ const cors = require('cors');
 const routes = require('./api/routes');
 const config = require('./config');
 
+// Define the model name as a constant at the top level for consistent use throughout the app
+const DEEPSEEK_MODEL = "deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free";
+
 const app = express();
 
 // Log environment settings for debugging
 console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('FRONTEND_URL:', process.env.FRONTEND_URL);
 console.log('API Keys available:', !!process.env.OPENAI_API_KEY);
+console.log('API Keys available (Together):', !!process.env.TOGETHER_API_KEY);
+console.log('Using LLM model:', DEEPSEEK_MODEL);
 
 // Configure CORS - handle multiple origins
 const allowedOrigins = [
@@ -146,6 +151,123 @@ app.post('/api/chat-fallback', (req, res) => {
   }
 });
 
+// Update LLM test endpoint to specifically check for DeepSeek model
+app.post('/api/llm-test', async (req, res) => {
+  try {
+    console.log('LLM test request received:', JSON.stringify(req.body));
+    
+    // Check if the request contains a message
+    if (!req.body || !req.body.message) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+    
+    // Use the global model constant
+    console.log(`Testing with model: ${DEEPSEEK_MODEL}`);
+    
+    // Log all available environment variables (redacted for security)
+    console.log('Environment variables available:');
+    Object.keys(process.env).forEach(key => {
+      if (key.includes('API') || key.includes('KEY') || key.includes('SECRET') || key.includes('MODEL')) {
+        console.log(`${key}: ${key.length > 0 ? '[SET]' : '[NOT SET]'}`);
+      }
+    });
+    
+    // Check if we have essential environment variables for Together.ai
+    if (!process.env.TOGETHER_API_KEY) {
+      console.error('ERROR: Missing TOGETHER_API_KEY environment variable');
+      return res.status(500).json({ 
+        error: 'Server configuration error: Missing Together.ai API key',
+        fixInstructions: 'Please set TOGETHER_API_KEY environment variable'
+      });
+    }
+    
+    // Return information about the configuration
+    return res.json({
+      message: "LLM test endpoint",
+      model: DEEPSEEK_MODEL,
+      receivedMessage: req.body.message,
+      apiKeysAvailable: {
+        together: !!process.env.TOGETHER_API_KEY
+      },
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('LLM test endpoint error:', error);
+    return res.status(500).json({ 
+      error: 'LLM test failed', 
+      details: error.message,
+      stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined
+    });
+  }
+});
+
+// Add a DeepSeek model test endpoint
+app.post('/api/deepseek-test', async (req, res) => {
+  try {
+    console.log('DeepSeek test request received:', JSON.stringify(req.body));
+    
+    if (!req.body || !req.body.message) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+    
+    // Check for Together.ai API key
+    if (!process.env.TOGETHER_API_KEY) {
+      console.error('ERROR: Missing TOGETHER_API_KEY environment variable');
+      return res.status(500).json({ 
+        error: 'Missing Together.ai API key',
+        fixInstructions: 'Set TOGETHER_API_KEY environment variable'
+      });
+    }
+    
+    // Log that we're using the DeepSeek model
+    console.log(`Using model: ${DEEPSEEK_MODEL}`);
+    
+    // For testing without actually making API calls
+    return res.json({
+      model: DEEPSEEK_MODEL,
+      message: `Model would process: "${req.body.message}"`,
+      modelConfig: {
+        temperature: 0.7,
+        max_tokens: 1024,
+        model: DEEPSEEK_MODEL
+      }
+    });
+    
+    /* 
+    // Implementation example for Together.ai API (uncomment and adapt as needed)
+    const response = await fetch('https://api.together.xyz/v1/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.TOGETHER_API_KEY}`
+      },
+      body: JSON.stringify({
+        model: DEEPSEEK_MODEL,
+        prompt: req.body.message,
+        max_tokens: 1024,
+        temperature: 0.7
+      })
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Together API error:', errorData);
+      throw new Error(`API error: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    return res.json(data);
+    */
+  } catch (error) {
+    console.error('DeepSeek test endpoint error:', error);
+    return res.status(500).json({ 
+      error: 'DeepSeek test failed', 
+      details: error.message,
+      stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined
+    });
+  }
+});
+
 // IMPORTANT: Check if routes module is properly loaded
 console.log('Routes module loaded:', !!routes);
 if (typeof routes !== 'function' && !routes.stack) {
@@ -155,6 +277,18 @@ if (typeof routes !== 'function' && !routes.stack) {
 // Use routes from api/routes
 app.use('/api', (req, res, next) => {
   try {
+    // Check if routes is a valid router
+    if (typeof routes !== 'function') {
+      console.error('Routes is not a function. Type:', typeof routes);
+      if (typeof routes === 'object') {
+        console.log('Routes object keys:', Object.keys(routes));
+        // Add model to routes object if it's used there
+        if (typeof routes === 'object') {
+          routes.MODEL_NAME = DEEPSEEK_MODEL;
+        }
+      }
+      throw new Error('Invalid routes configuration');
+    }
     console.log(`Routing request to /api${req.path}`);
     routes(req, res, next);
   } catch (err) {
@@ -201,5 +335,6 @@ app.use((req, res) => {
 const port = process.env.PORT || config.port || 5000;
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
-  console.log(`Available endpoints: /health, /api/debug, /api/chat, /api/chat-direct, /api/chat-fallback`);
+  console.log(`Available endpoints: /health, /api/debug, /api/chat, /api/chat-direct, /api/chat-fallback, /api/deepseek-test`);
+  console.log(`Using model: ${DEEPSEEK_MODEL}`);
 });

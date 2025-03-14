@@ -7,9 +7,18 @@ const financeService = require('../services/financeService');
 router.post('/chat', async (req, res) => {
     try {
         const userMessage = req.body.message;
+        
+        if (!userMessage) {
+            return res.status(400).json({ error: 'Message is required' });
+        }
+        
+        console.log(`Processing chat request with model: ${llamaService.MODEL_NAME}`);
+        console.log(`User message: "${userMessage}"`);
+        
         const response = await llamaService.getResponse(userMessage);
         res.json({ response });
     } catch (error) {
+        console.error('Error in /chat route:', error);
         res.status(500).json({ error: 'An error occurred while processing your request.' });
     }
 });
