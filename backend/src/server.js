@@ -8,6 +8,7 @@ const app = express();
 // Log environment settings for debugging
 console.log('NODE_ENV:', process.env.NODE_ENV);
 console.log('FRONTEND_URL:', process.env.FRONTEND_URL);
+console.log('API Keys available:', !!process.env.OPENAI_API_KEY);
 
 // Configure CORS - handle multiple origins
 const allowedOrigins = [
@@ -87,6 +88,41 @@ app.get('/api/debug', (req, res) => {
   }
 });
 
+// Create a more robust fallback chat handler with extra debugging
+app.post('/api/chat-direct', async (req, res) => {
+  try {
+    // Log the incoming request
+    console.log('Direct chat request received:', JSON.stringify(req.body));
+    
+    // Check if the request contains a message
+    if (!req.body || !req.body.message) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+    
+    // Check if we have essential environment variables
+    if (!process.env.OPENAI_API_KEY) {
+      console.error('ERROR: Missing OPENAI_API_KEY environment variable');
+      return res.status(500).json({ 
+        error: 'Server configuration error: Missing API key',
+        fixInstructions: 'Please set OPENAI_API_KEY environment variable'
+      });
+    }
+    
+    // Return a static response for now
+    return res.json({
+      response: `Echo: ${req.body.message}`,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Direct chat handler error:', error);
+    return res.status(500).json({ 
+      error: 'Chat handler error', 
+      details: error.message,
+      stack: process.env.NODE_ENV !== 'production' ? error.stack : undefined
+    });
+  }
+});
+
 // Add a fallback chat handler in case the main one is failing
 app.post('/api/chat-fallback', (req, res) => {
   try {
@@ -110,8 +146,22 @@ app.post('/api/chat-fallback', (req, res) => {
   }
 });
 
+// IMPORTANT: Check if routes module is properly loaded
+console.log('Routes module loaded:', !!routes);
+if (typeof routes !== 'function' && !routes.stack) {
+  console.error('WARNING: routes module does not appear to be a valid Express router');
+}
+
 // Use routes from api/routes
-app.use('/api', routes);
+app.use('/api', (req, res, next) => {
+  try {
+    console.log(`Routing request to /api${req.path}`);
+    routes(req, res, next);
+  } catch (err) {
+    console.error('Error in routes middleware:', err);
+    next(err);
+  }
+});
 
 // Enhanced error handling
 app.use((err, req, res, next) => {
@@ -151,4 +201,5 @@ app.use((req, res) => {
 const port = process.env.PORT || config.port || 5000;
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
+  console.log(`Available endpoints: /health, /api/debug, /api/chat, /api/chat-direct, /api/chat-fallback`);
 });
