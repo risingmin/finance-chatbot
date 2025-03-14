@@ -1,8 +1,10 @@
 const axios = require('axios');
 
-// Use the same model constant as in server.js
+// Define the model name as constant for consistent usage
 const DEEPSEEK_MODEL = "deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free";
-const TOGETHER_API_KEY = '4793ae3bb4dd5229824d39f742bc4a504c3cefde9de93585a6cd4c1fa3ef94c2';
+
+// Fallback API key if environment variable is not set - REPLACE WITH YOUR KEY IF EMPTY
+const FALLBACK_API_KEY = '4793ae3bb4dd5229824d39f742bc4a504c3cefde9de93585a6cd4c1fa3ef94c2';
 
 /**
  * Generates a response using the Together.ai API with the DeepSeek model
@@ -13,10 +15,15 @@ const getResponse = async (prompt) => {
   try {
     console.log(`Generating response using model: ${DEEPSEEK_MODEL}`);
     
-    // Check for API key
-    if (!process.env.TOGETHER_API_KEY) {
-      console.error('TOGETHER_API_KEY environment variable is not set');
-      throw new Error('Missing Together.ai API key');
+    // Use environment variable first, fallback to constant if not available
+    const apiKey = process.env.TOGETHER_API_KEY || FALLBACK_API_KEY;
+    
+    // Check if we have a valid API key
+    if (!apiKey) {
+      console.error('⚠️ API KEY MISSING - NO FALLBACK AVAILABLE ⚠️');
+      throw new Error('Missing Together.ai API key - Please set TOGETHER_API_KEY environment variable');
+    } else {
+      console.log(`Using API key: ${apiKey ? '[SET]' : '[NOT SET - INSERT KEY HERE]'}`);
     }
 
     // Make API call to Together.ai
@@ -31,7 +38,7 @@ const getResponse = async (prompt) => {
     }, {
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.TOGETHER_API_KEY}`
+        'Authorization': `Bearer ${apiKey}`
       }
     });
 
