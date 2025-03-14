@@ -222,45 +222,119 @@ app.post('/api/deepseek-test', async (req, res) => {
       });
     }
     
+    // Format messages to prevent thought processes from appearing
+    const messages = [
+      {
+        role: "system", 
+        content: "You are a helpful finance assistant. Provide direct answers without showing your thought process. Don't include phrases like 'let me think', 'hmm', or explanations of your reasoning process."
+      },
+      {
+        role: "user", 
+        content: req.body.message
+      }
+    ];
+    
     // Log that we're using the DeepSeek model
     console.log(`Using model: ${DEEPSEEK_MODEL}`);
-    
-    // For testing without actually making API calls
-    return res.json({
-      model: DEEPSEEK_MODEL,
-      message: `Model would process: "${req.body.message}"`,
-      modelConfig: {
-        temperature: 0.7,
-        max_tokens: 1024,
-        model: DEEPSEEK_MODEL
+
+    // For streaming response, we need to set the correct headers
+    if (req.query.stream === 'true') {
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      
+      // Implementation for Together.ai API with streaming
+      const response = await fetch('https://api.together.xyz/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.TOGETHER_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: DEEPSEEK_MODEL,
+          messages: messages,
+          max_tokens: 1024,
+          temperature: 0.7,
+          top_p: 0.7,
+          top_k: 50,
+          repetition_penalty: 1,
+          stream: true
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('Together API error:', errorData);
+        return res.status(response.status).json({
+          error: `API error: ${response.status} ${response.statusText}`,
+          details: errorData
+        });
       }
-    });
-    
-    /* 
-    // Implementation example for Together.ai API (uncomment and adapt as needed)
-    const response = await fetch('https://api.together.xyz/v1/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.TOGETHER_API_KEY}`
-      },
-      body: JSON.stringify({
+
+      // Handle streaming response
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      
+      // Process the stream
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n').filter(line => line.trim() !== '');
+        
+        for (const line of lines) {
+          if (line.startsWith('data:')) {
+            const jsonData = line.slice(5).trim();
+            if (jsonData === '[DONE]') {
+              res.write('data: [DONE]\n\n');
+              continue;
+            }
+            try {
+              const data = JSON.parse(jsonData);
+              if (data.choices && data.choices[0]?.delta?.content) {
+                res.write(`data: ${JSON.stringify({content: data.choices[0].delta.content})}\n\n`);
+              }
+            } catch (e) {
+              console.error('Error parsing SSE data:', e);
+            }
+          }
+        }
+      }
+      
+      res.end();
+    } else {
+      // Non-streaming implementation for Together.ai API
+      const response = await fetch('https://api.together.xyz/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.TOGETHER_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: DEEPSEEK_MODEL,
+          messages: messages,
+          max_tokens: 1024,
+          temperature: 0.7,
+          top_p: 0.7,
+          top_k: 50,
+          repetition_penalty: 1
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Together API error:', errorData);
+        throw new Error(`API error: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      return res.json({
         model: DEEPSEEK_MODEL,
-        prompt: req.body.message,
-        max_tokens: 1024,
-        temperature: 0.7
-      })
-    });
-    
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Together API error:', errorData);
-      throw new Error(`API error: ${response.status} ${response.statusText}`);
+        response: data.choices[0].message.content,
+        full_response: data
+      });
     }
-    
-    const data = await response.json();
-    return res.json(data);
-    */
   } catch (error) {
     console.error('DeepSeek test endpoint error:', error);
     return res.status(500).json({ 
