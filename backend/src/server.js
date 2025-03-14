@@ -222,8 +222,10 @@ app.post('/api/deepseek-test', async (req, res) => {
       });
     }
     
-    // Enhanced system prompt for financial assistant with capabilities, limitations and response format
-    const systemPrompt = `You are a personal financial assistant with the following capabilities and limitations:
+    // Enhanced system prompt with stronger anti-thought process instructions
+    const systemPrompt = `You are a personal financial assistant. Provide direct answers only.
+
+IMPORTANT INSTRUCTION: NEVER show your thought process, reasoning steps, or internal monologue. Do not include phrases like "Let me think", "I'll analyze this", "Let's see", "Hmm", or any similar expressions that reveal your thinking process.
 
 CAPABILITIES:
 - Provide detailed budgeting advice based on user income and expenses
@@ -243,16 +245,7 @@ RESPONSE FORMAT:
 2. For complex topics, first explain concepts in simple terms, then provide details
 3. Include relevant caveats or assumptions with your advice
 4. When appropriate, present options with pros and cons rather than a single solution
-5. End with follow-up questions if more information would improve your answer
-
-STYLE INSTRUCTIONS:
-- Provide direct answers without showing your thought process
-- Don't include phrases like 'let me think', 'hmm', or explanations of your reasoning process
-- Be concise but thorough in your explanations
-- Use clear, accessible language avoiding unnecessary jargon
-- When calculations are involved, show your work clearly
-
-If asked about topics beyond your capabilities, politely explain your limitations and suggest consulting with a certified financial professional.`;
+5. End with follow-up questions if more information would improve your answer`;
 
     // Few-shot examples to guide model responses
     const fewShotExamples = [
@@ -296,6 +289,33 @@ If asked about topics beyond your capabilities, politely explain your limitation
       messages.splice(1, fewShotExamples.length, ...req.body.history);
     }
     
+    // Function to apply post-processing to filter out thought processes
+    const filterThoughtProcesses = (text) => {
+      // Common thought process patterns to remove
+      const thoughtPatterns = [
+        /(?:Let me|I'll|I need to|I should|Let's) (?:think|analyze|consider|examine|see|explore|investigate|understand|figure out|calculate|evaluate|check|review|assess|work through|determine)/gi,
+        /(?:Hmm|Ah|Oh|Well|So|Okay|Now|Alright|Let's see|Thinking about this)/gi,
+        /I'm trying to|I'll try to|Let me try to/gi,
+        /my reasoning is|my analysis shows|my thinking is|my thought process/gi,
+        /first,? I need to understand|first,? I should consider/gi,
+        /(?:To answer|To respond to|To address) this(?: question| query| request)/gi,
+        /(?:Based on|From) (?:my|the) (?:knowledge|understanding|training|analysis)/gi
+      ];
+      
+      let processed = text;
+      
+      // Remove thought patterns
+      thoughtPatterns.forEach(pattern => {
+        processed = processed.replace(pattern, '');
+      });
+      
+      // Clean up any unnecessary whitespace created by removals
+      processed = processed.replace(/\n\s*\n\s*\n/g, '\n\n');
+      processed = processed.replace(/^\s+/gm, '');
+      
+      return processed;
+    };
+
     // For streaming response, we need to set the correct headers
     if (req.query.stream === 'true') {
       res.setHeader('Content-Type', 'text/event-stream');
@@ -352,7 +372,10 @@ If asked about topics beyond your capabilities, politely explain your limitation
             try {
               const data = JSON.parse(jsonData);
               if (data.choices && data.choices[0]?.delta?.content) {
-                res.write(`data: ${JSON.stringify({content: data.choices[0].delta.content})}\n\n`);
+                // Apply filtering to each chunk of streaming content
+                const content = data.choices[0].delta.content;
+                const filteredContent = filterThoughtProcesses(content);
+                res.write(`data: ${JSON.stringify({content: filteredContent})}\n\n`);
               }
             } catch (e) {
               console.error('Error parsing SSE data:', e);
@@ -388,10 +411,24 @@ If asked about topics beyond your capabilities, politely explain your limitation
       }
       
       const data = await response.json();
+      
+      // Apply filtering to the complete response
+      let responseContent = data.choices[0].message.content;
+      responseContent = filterThoughtProcesses(responseContent);
+      
       return res.json({
         model: DEEPSEEK_MODEL,
-        response: data.choices[0].message.content,
-        full_response: data
+        response: responseContent,
+        full_response: {
+          ...data,
+          choices: [{
+            ...data.choices[0],
+            message: {
+              ...data.choices[0].message,
+              content: responseContent
+            }
+          }]
+        }
       });
     }
   } catch (error) {
