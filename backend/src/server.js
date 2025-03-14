@@ -222,21 +222,80 @@ app.post('/api/deepseek-test', async (req, res) => {
       });
     }
     
-    // Format messages to prevent thought processes from appearing
+    // Enhanced system prompt for financial assistant with capabilities, limitations and response format
+    const systemPrompt = `You are a personal financial assistant with the following capabilities and limitations:
+
+CAPABILITIES:
+- Provide detailed budgeting advice based on user income and expenses
+- Calculate loan payments, interest, and amortization schedules
+- Explain investment concepts and asset allocation principles
+- Help with retirement planning calculations and strategies
+- Offer debt reduction strategies and prioritization
+
+LIMITATIONS:
+- Do not recommend specific securities, stocks, or investment products
+- Do not provide tax advice beyond general educational information
+- Do not offer legal advice on financial contracts or agreements
+- Do not make definitive predictions about market performance
+
+RESPONSE FORMAT:
+1. Always break down mathematical calculations step-by-step
+2. For complex topics, first explain concepts in simple terms, then provide details
+3. Include relevant caveats or assumptions with your advice
+4. When appropriate, present options with pros and cons rather than a single solution
+5. End with follow-up questions if more information would improve your answer
+
+STYLE INSTRUCTIONS:
+- Provide direct answers without showing your thought process
+- Don't include phrases like 'let me think', 'hmm', or explanations of your reasoning process
+- Be concise but thorough in your explanations
+- Use clear, accessible language avoiding unnecessary jargon
+- When calculations are involved, show your work clearly
+
+If asked about topics beyond your capabilities, politely explain your limitations and suggest consulting with a certified financial professional.`;
+
+    // Few-shot examples to guide model responses
+    const fewShotExamples = [
+      {
+        role: "user",
+        content: "I make $4,500 per month after taxes and need help creating a budget."
+      },
+      {
+        role: "assistant",
+        content: "I'd be happy to help you create a basic budget framework based on your $4,500 monthly after-tax income.\n\nHere's a suggested allocation using the popular 50/30/20 rule:\n\nESSENTIAL EXPENSES (50%): $2,250/month\n- Housing (rent/mortgage): ~$1,350 (30% of income)\n- Utilities: ~$225\n- Groceries: ~$450\n- Transportation: ~$225\n\nDISCRETIONARY SPENDING (30%): $1,350/month\n- Dining out: ~$350\n- Entertainment: ~$300\n- Shopping: ~$350\n- Subscriptions: ~$200\n- Miscellaneous: ~$150\n\nFINANCIAL GOALS (20%): $900/month\n- Emergency fund: ~$300\n- Retirement savings: ~$400\n- Other savings goals: ~$200\n\nWould you like to adjust this breakdown based on your specific situation? For example:\n- Do you have debt payments to consider?\n- Are there specific savings goals you're working toward?\n- Do your housing costs differ significantly from the estimate?"
+      },
+      {
+        role: "user",
+        content: "I have $5,000 on a credit card with 22% APR and $15,000 in student loans at 5.5% APR. Which should I pay off first?"
+      },
+      {
+        role: "assistant",
+        content: "Based on your debt details, here's my analysis:\n\nDEBT OVERVIEW:\n- Credit card: $5,000 at 22% APR\n- Student loans: $15,000 at 5.5% APR\n\nANNUAL INTEREST COSTS:\n- Credit card: $5,000 × 22% = $1,100/year\n- Student loans: $15,000 × 5.5% = $825/year\n\nRECOMMENDATION:\nFocus on paying off the credit card debt first while making minimum payments on your student loans. This approach (known as the \"avalanche method\") saves you the most money in interest.\n\nCALCULATION EXAMPLE:\nIf you have $500/month available for debt repayment:\n- Pay minimum on student loans (~$150/month)\n- Put remaining $350/month toward credit card\n- Credit card would be paid off in approximately 17 months\n- Then redirect the full $500/month to student loans\n\nAlternative approach: If you prefer quick wins for psychological motivation, you could use the \"snowball method\" by paying off the smaller debt first regardless of interest rate.\n\nWould you like me to calculate a detailed repayment schedule for either approach?"
+      }
+    ];
+    
+    // Construct messages with system prompt, few-shot examples, and user query
     const messages = [
       {
         role: "system", 
-        content: "You are a helpful finance assistant. Provide direct answers without showing your thought process. Don't include phrases like 'let me think', 'hmm', or explanations of your reasoning process."
+        content: systemPrompt
       },
+      ...fewShotExamples,
       {
         role: "user", 
         content: req.body.message
       }
     ];
     
-    // Log that we're using the DeepSeek model
     console.log(`Using model: ${DEEPSEEK_MODEL}`);
 
+    // Optional: Track conversation history if provided in the request
+    if (req.body.history && Array.isArray(req.body.history)) {
+      // Insert the conversation history before the current message
+      // Remove few-shot examples when history is provided to save context window
+      messages.splice(1, fewShotExamples.length, ...req.body.history);
+    }
+    
     // For streaming response, we need to set the correct headers
     if (req.query.stream === 'true') {
       res.setHeader('Content-Type', 'text/event-stream');
@@ -253,11 +312,11 @@ app.post('/api/deepseek-test', async (req, res) => {
         body: JSON.stringify({
           model: DEEPSEEK_MODEL,
           messages: messages,
-          max_tokens: 1024,
-          temperature: 0.7,
-          top_p: 0.7,
+          max_tokens: 2048, // Increased for more detailed financial advice
+          temperature: 0.3, // Lowered for more factual/consistent outputs
+          top_p: 0.9,
           top_k: 50,
-          repetition_penalty: 1,
+          repetition_penalty: 1.1, // Slightly increased to reduce repetitive text
           stream: true
         })
       });
@@ -314,11 +373,11 @@ app.post('/api/deepseek-test', async (req, res) => {
         body: JSON.stringify({
           model: DEEPSEEK_MODEL,
           messages: messages,
-          max_tokens: 1024,
-          temperature: 0.7,
-          top_p: 0.7,
+          max_tokens: 2048, // Increased for more detailed financial advice
+          temperature: 0.3, // Lowered for more factual/consistent outputs
+          top_p: 0.9,
           top_k: 50,
-          repetition_penalty: 1
+          repetition_penalty: 1.1 // Slightly increased to reduce repetitive text
         })
       });
       
