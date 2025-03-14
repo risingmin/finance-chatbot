@@ -5,10 +5,11 @@ const app = express();
 const PORT = process.env.PORT || 3000; // Using port 3000 instead of 5000
 
 // Enable CORS for frontend
+// Example backend CORS configuration (needs to be updated)
 app.use(cors({
-  origin: 'http://localhost:5173', // Default Vite dev server port
+  origin: ['http://localhost:3000', 'https://finance-chatbot.onrender.com'],
   methods: ['GET', 'POST'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  credentials: true
 }));
 
 // Parse JSON request bodies
