@@ -20,6 +20,7 @@ if (process.env.FRONTEND_URL) {
   allowedOrigins.push(process.env.FRONTEND_URL);
 }
 
+// Enhanced CORS configuration with explicit OPTIONS handling
 app.use(cors({
   origin: function(origin, callback) {
     // Allow requests with no origin (like mobile apps, curl requests)
@@ -33,8 +34,13 @@ app.use(cors({
     }
   },
   methods: ['GET', 'POST', 'OPTIONS'],
-  credentials: true
+  credentials: true,
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 }));
+
+// Handle OPTIONS requests explicitly
+app.options('*', cors());
 
 app.use(express.json());
 
@@ -81,6 +87,30 @@ app.get('/api/debug', (req, res) => {
   }
 });
 
+// Add a fallback chat handler in case the main one is failing
+app.post('/api/chat-fallback', (req, res) => {
+  try {
+    // Log the incoming request
+    console.log('Chat fallback request body:', req.body);
+    
+    // Check if the request contains a message
+    if (!req.body || !req.body.message) {
+      return res.status(400).json({ error: 'Message is required' });
+    }
+    
+    // Return a simple response
+    return res.json({
+      message: "This is a fallback response. The main chat API is currently unavailable.",
+      received: req.body.message,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error in fallback chat handler:', error);
+    return res.status(500).json({ error: 'Fallback handler error: ' + error.message });
+  }
+});
+
+// Use routes from api/routes
 app.use('/api', routes);
 
 // Enhanced error handling
@@ -98,6 +128,11 @@ app.use((err, req, res, next) => {
     ? 'An error occurred while processing your request.' 
     : err.message || 'Something went wrong!';
   
+  // Set CORS headers directly on error responses to ensure they're present
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
   res.status(statusCode).json({ 
     error: errorMessage,
     // Include more details in non-production environments
@@ -106,6 +141,11 @@ app.use((err, req, res, next) => {
       name: err.name
     })
   });
+});
+
+// Catch-all handler for undefined routes
+app.use((req, res) => {
+  res.status(404).json({ error: 'Route not found' });
 });
 
 const port = process.env.PORT || config.port || 5000;
