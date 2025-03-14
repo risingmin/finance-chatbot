@@ -101,7 +101,98 @@
 }
 
 .message-text {
-    line-height: 1.5;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.message-text p {
+    margin-bottom: 1rem;
+}
+
+.message-text p:last-child {
+    margin-bottom: 0;
+}
+
+.message-text ul,
+.message-text ol {
+    margin: 0.5rem 0;
+    padding-left: 2rem;
+}
+
+.message-text ul {
+    list-style-type: disc;
+}
+
+.message-text ol {
+    list-style-type: decimal;
+    counter-reset: item;
+}
+
+.message-text li {
+    margin-bottom: 0.3rem;
+    position: relative;
+}
+
+.message-text .numbered-item {
+    padding-left: 1.5rem;
+    position: relative;
+}
+
+.message-text .list-number {
+    position: absolute;
+    left: 0;
+    color: inherit;
+}
+
+.message-text code {
+    font-family: monospace;
+    background-color: rgba(0, 0, 0, 0.05);
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+.message-text pre {
+    background-color: rgba(0, 0, 0, 0.05);
+    padding: 1rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 1rem 0;
+}
+
+.message-text pre code {
+    background-color: transparent;
+    padding: 0;
+    border-radius: 0;
+    display: block;
+    color: #333;
+    font-size: 0.9em;
+    white-space: pre;
+}
+
+.message-text h3 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 1.2rem 0 0.6rem;
+}
+
+.message-text strong {
+    font-weight: 600;
+}
+
+.message-text em {
+    font-style: italic;
+}
+
+/* For bot messages specifically */
+.bot-message .message-bubble .message-text pre {
+    background-color: rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.bot-message .message-bubble .message-text code {
+    color: #0a0a0a;
 }
 
 .chat-input-container {

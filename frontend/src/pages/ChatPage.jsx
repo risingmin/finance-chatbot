@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { formatChatMessage, createMarkup } from '../utils/messageFormatter';
 
 const ChatPage = () => {
   const [messages, setMessages] = useState([]);
@@ -79,7 +80,8 @@ const ChatPage = () => {
       const botMessage = { 
         id: Date.now() + 1, 
         text: botResponseText,
-        sender: 'bot' 
+        sender: 'bot',
+        isFormatted: true // Flag to indicate this message should be formatted
       };
       setMessages(prev => [...prev, botMessage]);
     } catch (error) {
@@ -110,6 +112,14 @@ const ChatPage = () => {
     }
   };
 
+  // Function to render message content with or without formatting
+  const renderMessageContent = (message) => {
+    if (message.sender === 'bot' && message.isFormatted) {
+      return <div className="message-text" dangerouslySetInnerHTML={createMarkup(formatChatMessage(message.text))} />;
+    }
+    return <div className="message-text">{message.text}</div>;
+  };
+
   return (
     <div className="chat-page">
       <h1>Finance Assistant</h1>
@@ -127,7 +137,7 @@ const ChatPage = () => {
               key={message.id} 
               className={`message ${message.sender === 'user' ? 'user-message' : 'bot-message'}`}
             >
-              {message.text}
+              {renderMessageContent(message)}
             </div>
           ))}
           {isLoading && <div className="loading-indicator">Bot is typing...</div>}
