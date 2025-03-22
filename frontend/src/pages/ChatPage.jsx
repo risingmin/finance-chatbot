@@ -19,18 +19,25 @@ const ChatPage = () => {
       try {
         // Show that we're checking the connection
         setApiStatus('checking');
-        console.log('Checking API connection to:', API_URL);
+        const healthEndpoint = API_URL.replace('/api/chat', '/health');
+        console.log('Checking API connection to:', healthEndpoint);
         
         // Try to contact the API's health endpoint
-        const response = await axios.get('https://finance-chatbot-api.onrender.com/health', {
+        const response = await axios.get(healthEndpoint, {
           timeout: 5000 // Wait up to 5 seconds
         });
         
         console.log('API health check response:', response.data);
         setApiStatus('connected'); // API is working
       } catch (error) {
-        // If there's an error, log it and update status
-        console.error('API connection check failed:', error);
+        // More detailed error logging
+        console.error('API connection check failed:', error.message);
+        if (error.response) {
+          console.error('Status:', error.response.status);
+          console.error('Data:', error.response.data);
+        } else if (error.request) {
+          console.error('No response received');
+        }
         setApiStatus('error');
       }
     };
@@ -62,16 +69,13 @@ const ChatPage = () => {
     // Show loading state while waiting for bot response
     setIsLoading(true);
     
-    // Log what we're sending for debugging
-    console.log('Sending request to:', API_URL);
-    console.log('Request payload:', { message: userInput });
-    
     try {
+      console.log('Sending request to:', API_URL);
+      console.log('Request payload:', { message: userInput });
+      
       // Send the message to the API
       const response = await axios.post(API_URL, {
         message: userInput,
-        query: userInput,  // Some APIs use different field names
-        prompt: userInput, // Include alternatives for flexibility
       }, {
         headers: {
           'Content-Type': 'application/json',
@@ -101,15 +105,30 @@ const ChatPage = () => {
       setMessages(prev => [...prev, botMessage]);
       
     } catch (error) {
-      // Handle errors
-      console.error('Error details:', error);
+      // Enhanced error handling
+      console.error('Error details:', error.message);
+      if (error.response) {
+        console.error('Status:', error.response.status);
+        console.error('Data:', error.response.data);
+      } else if (error.request) {
+        console.error('No response received from server');
+      }
       
-      // Add an error message to the chat
-      const errorMessage = { 
-        id: Date.now() + 1, 
-        text: `Error: ${error.message}. Please check the console for details.`, 
-        sender: 'bot' 
+      // Add a more descriptive error message to the chat
+      let errorMessage = {
+        id: Date.now() + 1,
+        text: `Sorry, I couldn't connect to the backend service. `,
+        sender: 'bot'
       };
+      
+      if (error.response && error.response.status === 404) {
+        errorMessage.text += "The API endpoint was not found (404). Please check the API URL configuration.";
+      } else if (!error.response && error.request) {
+        errorMessage.text += "The server didn't respond. It might be down or starting up on Render.com (which can take a few minutes after inactivity).";
+      } else {
+        errorMessage.text += `Error: ${error.message}`;
+      }
+      
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       // Always stop showing the loading state
