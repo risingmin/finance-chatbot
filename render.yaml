@@ -4,7 +4,7 @@ services:
     name: finance-chatbot
     runtime: static
     rootDir: frontend
-    buildCommand: npm install && npm run build
+    buildCommand: npm install && npm run build:safe
     publishDir: dist
     envVars:
       - key: VITE_API_URL

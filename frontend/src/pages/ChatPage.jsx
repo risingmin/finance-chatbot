@@ -320,7 +320,7 @@ const ChatPage = () => {
         </form>
       </div>
       
-      <div className="debug-info" style={{fontSize: '12px', color: '#666', marginTop: '10px'}}></div>
+      <div className="debug-info" style={{fontSize: '12px', color: '#666', marginTop: '10px'}}>
         API Base URL: {BASE_URL} | Full Endpoint: {API_URL} | Status: {apiStatus} | Retry count: {retryCount}/3
       </div>
     </div>

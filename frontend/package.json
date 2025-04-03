@@ -5,7 +5,9 @@
   "main": "src/main.jsx",
   "scripts": {
     "start": "vite",
+    "prebuild": "node scripts/verify-build.js",
     "build": "vite build",
+    "build:safe": "npm run prebuild && vite build --config vite.config.js",
     "serve": "vite preview",
     "debug": "vite --debug",
     "dev": "vite"
