@@ -67,6 +67,11 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
+// Add a simple ping endpoint that's easier to access
+app.get('/api/ping', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Add a debug endpoint to test core functionality
 app.get('/api/debug', (req, res) => {
   try {
