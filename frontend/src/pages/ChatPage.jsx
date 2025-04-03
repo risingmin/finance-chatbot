@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { formatChatMessage, createMarkup } from '../utils/messageFormatter';
 
@@ -8,43 +8,72 @@ const ChatPage = () => {
   const [input, setInput] = useState(''); // Current input text
   const [isLoading, setIsLoading] = useState(false); // Loading state while waiting for bot response
   const [apiStatus, setApiStatus] = useState('idle'); // Status of API connection
+  const [retryCount, setRetryCount] = useState(0); // Track API connection retry attempts
   
   // API URL from environment variables or fallback to default
   const API_URL = import.meta.env.VITE_API_URL || 'https://finance-chatbot-api.onrender.com/api/chat';
   
+  // Function to check if API is available - defined with useCallback so we can reference it in retries
+  const checkApiConnection = useCallback(async () => {
+    try {
+      // Show that we're checking the connection
+      setApiStatus('checking');
+      // First try the direct health endpoint
+      const healthEndpoint = `${API_URL.split('/api/')[0]}/health`;
+      console.log('Checking API connection to:', healthEndpoint);
+      
+      // Try to contact the API's health endpoint
+      const response = await axios.get(healthEndpoint, {
+        timeout: 15000 // Increased from 5000 to 15000 (15 seconds)
+      });
+      
+      console.log('API health check response:', response.data);
+      setApiStatus('connected'); // API is working
+      return true;
+    } catch (error) {
+      // More detailed error logging
+      console.error('API connection check failed:', error.message);
+      if (error.response) {
+        console.error('Status:', error.response.status);
+        console.error('Data:', error.response.data);
+      } else if (error.request) {
+        console.error('No response received');
+      }
+      
+      setApiStatus(retryCount >= 2 ? 'error' : 'retrying');
+      return false;
+    }
+  }, [API_URL, retryCount]);
+  
+  // Add a welcome message when the component mounts
+  useEffect(() => {
+    const welcomeMessage = {
+      id: Date.now(),
+      text: "Hello! I'm your personal finance assistant. How can I help you today?",
+      sender: 'bot',
+      isFormatted: true
+    };
+    setMessages([welcomeMessage]);
+  }, []);
+  
   // Check API connection when component loads
   useEffect(() => {
-    // Function to check if API is available
-    const checkApiConnection = async () => {
-      try {
-        // Show that we're checking the connection
-        setApiStatus('checking');
-        const healthEndpoint = API_URL.replace('/api/chat', '/health');
-        console.log('Checking API connection to:', healthEndpoint);
+    const attemptConnection = async () => {
+      const success = await checkApiConnection();
+      
+      // If not successful and we haven't retried too many times, try again after a delay
+      if (!success && retryCount < 2) {
+        const retryDelay = (retryCount + 1) * 5000; // 5s, then 10s
+        console.log(`Will retry API connection in ${retryDelay/1000}s...`);
         
-        // Try to contact the API's health endpoint
-        const response = await axios.get(healthEndpoint, {
-          timeout: 5000 // Wait up to 5 seconds
-        });
-        
-        console.log('API health check response:', response.data);
-        setApiStatus('connected'); // API is working
-      } catch (error) {
-        // More detailed error logging
-        console.error('API connection check failed:', error.message);
-        if (error.response) {
-          console.error('Status:', error.response.status);
-          console.error('Data:', error.response.data);
-        } else if (error.request) {
-          console.error('No response received');
-        }
-        setApiStatus('error');
+        setTimeout(() => {
+          setRetryCount(prevCount => prevCount + 1);
+        }, retryDelay);
       }
     };
     
-    // Run the check function
-    checkApiConnection();
-  }, []); // Empty array means this runs once when component loads
+    attemptConnection();
+  }, [checkApiConnection, retryCount]); // Dependency on retryCount will trigger retries
 
   // Function to handle sending a new message
   const handleSendMessage = async (e) => {
@@ -73,6 +102,14 @@ const ChatPage = () => {
       console.log('Sending request to:', API_URL);
       console.log('Request payload:', { message: userInput });
       
+      // If API is in error state, try reconnecting first
+      if (apiStatus === 'error') {
+        const reconnected = await checkApiConnection();
+        if (!reconnected) {
+          throw new Error('API is currently unavailable');
+        }
+      }
+      
       // Send the message to the API
       const response = await axios.post(API_URL, {
         message: userInput,
@@ -86,6 +123,9 @@ const ChatPage = () => {
       
       // Log the response for debugging
       console.log('Response data:', response.data);
+      
+      // Update API status to connected since we got a response
+      setApiStatus('connected');
       
       // Get the bot's response text from wherever it is in the response
       const botResponseText = 
@@ -113,6 +153,9 @@ const ChatPage = () => {
       } else if (error.request) {
         console.error('No response received from server');
       }
+      
+      // Set API status to error
+      setApiStatus('error');
       
       // Add a more descriptive error message to the chat
       let errorMessage = {
@@ -156,10 +199,22 @@ const ChatPage = () => {
     <div className="chat-page">
       <h1>Finance Assistant</h1>
       
-      {/* Show an error message if API isn't connected */}
+      {/* Show appropriate API status message */}
+      {apiStatus === 'checking' && (
+        <div className="api-status checking">
+          Connecting to backend API...
+        </div>
+      )}
+      
+      {apiStatus === 'retrying' && (
+        <div className="api-status retrying">
+          Connection to backend API failed. Retrying... (Attempt {retryCount + 1}/3)
+        </div>
+      )}
+      
       {apiStatus === 'error' && (
         <div className="api-status error">
-          Cannot connect to backend API. Please check your connection and try again.
+          Cannot connect to backend API. The service may be starting up or experiencing issues. Your messages will still be displayed but responses may be delayed.
         </div>
       )}
       
@@ -202,7 +257,7 @@ const ChatPage = () => {
       
       {/* Debug information at bottom of page */}
       <div className="debug-info" style={{fontSize: '12px', color: '#666', marginTop: '10px'}}>
-        API URL: {API_URL} | Status: {apiStatus}
+        API URL: {API_URL} | Status: {apiStatus} | Retry count: {retryCount}/3
       </div>
     </div>
   );
