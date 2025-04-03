@@ -11,17 +11,25 @@ const ChatPage = () => {
   const [retryCount, setRetryCount] = useState(0); // Track API connection retry attempts
   const [lastAttemptTime, setLastAttemptTime] = useState(null); // Track when we last tried to connect
   
-  // API URL from environment variables or fallback to default
-  // Fix API URL construction - make it consistent
+  // API URL construction with better handling of slashes
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://finance-chatbot-api.onrender.com';
-  const API_ENDPOINT = '/api/chat'; 
-  const API_URL = `${API_BASE_URL}${API_BASE_URL.endsWith('/') ? '' : '/'}${API_ENDPOINT.startsWith('/') ? API_ENDPOINT.substring(1) : API_ENDPOINT}`;
+  // Ensure consistent base URL without trailing slash
+  const normalizedBaseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
+  const API_ENDPOINT = '/api/chat';
+  // Build URL ensuring exactly one slash between parts
+  const API_URL = `${normalizedBaseUrl}${API_ENDPOINT}`;
+  
+  // Also create an alternative URL without the /api prefix in case the server uses a different structure
+  const ALT_API_URL = `${normalizedBaseUrl}/chat`;
   
   // For health/status checks
-  const BASE_URL = API_BASE_URL;
+  const BASE_URL = normalizedBaseUrl;
   
-  console.log('Using API Base URL:', API_BASE_URL);
-  console.log('Using complete API URL:', API_URL);
+  console.log('Using API URLs:', {
+    base: BASE_URL,
+    primary: API_URL,
+    alternative: ALT_API_URL
+  });
   
   // Function to check if API is available - defined with useCallback so we can reference it in retries
   const checkApiConnection = useCallback(async () => {
@@ -139,8 +147,7 @@ const ChatPage = () => {
     setIsLoading(true);
     
     try {
-      console.log('Sending request to:', API_URL);
-      console.log('Request payload:', { message: userInput });
+      console.log('Attempting to send request to:', API_URL);
       
       // Try to reconnect if in error state
       if (apiStatus === 'error') {
@@ -152,23 +159,46 @@ const ChatPage = () => {
         }
       }
       
-      // Send the message to the API with updated options for debugging
-      const response = await axios.post(API_URL, {
-        message: userInput,
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'X-Client-Version': '1.0.0',  // Add client version for debugging
-          'X-Request-Time': new Date().toISOString()  // Timestamp 
-        },
-        timeout: 45000,  // 45 seconds timeout
-        // Add request ID for tracing
-        transformRequest: [(data, headers) => {
-          headers['X-Request-ID'] = Date.now().toString(36) + Math.random().toString(36).substr(2);
-          return JSON.stringify(data);
-        }]
-      });
+      // First try the primary API URL
+      let response;
+      try {
+        response = await axios.post(API_URL, {
+          message: userInput,
+        }, {
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Client-Version': '1.0.0',  // Add client version for debugging
+            'X-Request-Time': new Date().toISOString()  // Timestamp 
+          },
+          timeout: 45000,  // 45 seconds timeout
+          // Add request ID for tracing
+          transformRequest: [(data, headers) => {
+            headers['X-Request-ID'] = Date.now().toString(36) + Math.random().toString(36).substr(2);
+            return JSON.stringify(data);
+          }]
+        });
+        
+        console.log('Response received from primary URL:', response.data);
+      } catch (primaryError) {
+        // If the primary URL fails with 404, try the alternative URL
+        if (primaryError.response?.status === 404) {
+          console.log('Primary API URL returned 404, trying alternative URL:', ALT_API_URL);
+          response = await axios.post(ALT_API_URL, {
+            message: userInput,
+          }, {
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            timeout: 45000
+          });
+          console.log('Response received from alternative URL:', response.data);
+        } else {
+          // If it's not a 404 error, re-throw it
+          throw primaryError;
+        }
+      }
       
       console.log('Response data:', response.data);
       setApiStatus('connected');
@@ -212,7 +242,16 @@ const ChatPage = () => {
       };
       
       if (error.response && error.response.status === 404) {
-        errorMessage.text += "The API endpoint was not found (404). Please check the API URL configuration.";
+        errorMessage.text += "The API endpoint was not found (404). I tried multiple URL formats but none worked. The API might be configured differently than expected.";
+        
+        // Add more technical details for debugging
+        console.error('404 Not Found Error Details:', {
+          primaryUrl: API_URL,
+          alternativeUrl: ALT_API_URL,
+          baseUrl: BASE_URL,
+          responseData: error.response.data,
+          headers: error.response.headers
+        });
       } else if (!error.response && error.request) {
         errorMessage.text += "The server didn't respond. It may be in sleep mode on Render.com. This is normal behavior and it can take up to 2-3 minutes to start up. Please try again in a moment.";
       } else {

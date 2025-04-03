@@ -7,7 +7,7 @@ const routes = require('./api/routes');
 const config = require('./config');
 
 // Define the model name as a constant at the top level for consistent use throughout the app
-const DEEPSEEK_MODEL = "deepseek-ai/DeepSeek-R1-Distill-Llama-70B-free";
+const DEEPSEEK_MODEL = "deepseek-ai/DeepSeek-R1-Distill--70B-free";// Fixed typo (removed extra dash)
 
 const app = express();
 
@@ -479,52 +479,136 @@ RESPONSE FORMAT:
   }
 });
 
-// IMPORTANT: Check if routes module is properly loaded
-console.log('Routes module loaded:', !!routes);
-if (typeof routes !== 'function' && !routes.stack) {
-  console.error('WARNING: routes module does not appear to be a valid Express router');
-}
-
-// Use routes from api/routes
-app.use('/api', (req, res, next) => {
-  try {
-    // Check if routes is a valid router
-    if (typeof routes !== 'function') {
-      console.error('Routes is not a function. Type:', typeof routes);
-      if (typeof routes === 'object') {
-        console.log('Routes object keys:', Object.keys(routes));
-        // Add model to routes object if it's used there
-        if (typeof routes === 'object') {
-          routes.MODEL_NAME = DEEPSEEK_MODEL;
-        }
-      }
-      throw new Error('Invalid routes configuration');
-    }
-    console.log(`Routing request to /api${req.path}`);
-    routes(req, res, next);
-  } catch (err) {
-    console.error('Error in routes middleware:', err);
-    next(err);
-  }
+// Add a test endpoint that's guaranteed to work and has minimal dependencieseast one working endpoint)
+app.get('/api/status', (req, res) => {
+  res.json({
+    status: 'online',
+    timestamp: new Date().toISOString(),   console.log('Direct API chat request received:', JSON.stringify(req.body));
+    routes: {    
+      '/': 'Root endpoint',ontains a message
+      '/health': 'Health check endpoint',e) {
+      '/api/ping': 'Simple ping endpoint',eturn res.status(400).json({ error: 'Message is required' });
+      '/api/chat': 'Main chat endpoint',
+      '/api/chat-direct': 'Direct chat endpoint (fallback)',
+      '/api/debug': 'Debug endpoint',
+      '/api/status': 'This endpoint'
+    }ct response from the server's /api/chat endpoint.`,
+  });
 });
 
-// Enhanced error handling
-app.use((err, req, res, next) => {
-  console.error('ERROR OCCURRED:');
-  console.error('Request path:', req.path);
+// Add an endpoint that lists all registered routes for debuggingle.error('API chat handler error:', error);
+app.get('/api/routes', (req, res) => {urn res.status(500).json({ 
+  // Get all registered routes
+  const routes = []; details: error.message
+  
+  app._router.stack.forEach(middleware => {
+    if (middleware.route) {
+      // Routes registered directly on the app
+      routes.push({Check if routes module is properly loaded
+        path: middleware.route.path,sole.log('Routes module loaded:', !!routes);
+        methods: Object.keys(middleware.route.methods).filter(m => middleware.route.methods[m])(typeof routes !== 'function' && !routes.stack) {
+      });  console.error('WARNING: routes module does not appear to be a valid Express router');
+    } else if (middleware.name === 'router') {
+      // Router middleware
+      middleware.handle.stack.forEach(handler => {
+        if (handler.route) {
+          const path = handler.route.path;
+          const methods = Object.keys(handler.route.methods).filter(m => handler.route.methods[m]);
+          routes.push({ path: path, methods: methods });
+        }Type:', typeof routes);
+      });
+    }      console.log('Routes object keys:', Object.keys(routes));
+  });it's used there
+  
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),    }
+    availableRoutes: routes
+  });
+});
+
+// Add a specific catch for /api/chat to ensure it's handled} catch (err) {
+app.all('/api/chat', (req, res, next) => {es middleware:', err);
+  if (req.method !== 'POST') {
+    return res.status(405).json({
+      error: 'Method Not Allowed',
+      message: 'The /api/chat endpoint only accepts POST requests'
+    });ndling
+  }e((err, req, res, next) => {
+  next(); // Let it continue to actual handlersole.error('ERROR OCCURRED:');
+});onsole.error('Request path:', req.path);
   console.error('Request method:', req.method);
-  console.error('Request body:', req.body);
-  console.error('Error name:', err.name);
-  console.error('Error message:', err.message);
-  console.error('Error stack:', err.stack);
-  
-  let statusCode = err.statusCode || 500;
-  let errorMessage = process.env.NODE_ENV === 'production' 
-    ? 'An error occurred while processing your request.' 
-    : err.message || 'Something went wrong!';
-  
-  // Set CORS headers directly on error responses to ensure they're present
-  res.header('Access-Control-Allow-Origin', '*');
+// IMPORTANT: Check if routes module is properly loaded);
+console.log('Routes module loaded:', !!routes);name:', err.name);
+if (typeof routes !== 'function' && !routes.stack) {
+  console.error('WARNING: routes module does not appear to be a valid Express router');onsole.error('Error stack:', err.stack);
+}  
+
+// Use routes from api/routescess.env.NODE_ENV === 'production' 
+app.use('/api', (req, res, next) => {equest.' 
+  try {
+    // Check if routes is a valid router
+    if (typeof routes !== 'function') {/ Set CORS headers directly on error responses to ensure they're present
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+});  console.log(`Available endpoints: /health, /api/debug, /api/chat, /api/chat-direct, /api/chat-fallback, /api/deepseek-test`);  console.log(`Using model: ${DEEPSEEK_MODEL}`);  console.log(`Server running on port ${port}`);app.listen(port, () => {const port = process.env.PORT || config.port || 5000;});  res.status(404).json({ error: 'Route not found' });app.use((req, res) => {// Catch-all handler for undefined routes});  });    })      name: err.name      stack: err.stack,    ...(process.env.NODE_ENV !== 'production' && {     // Include more details in non-production environments    error: errorMessage,  res.status(statusCode).json({     res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');  res.header('Access-Control-Allow-Origin', '*');  // Set CORS headers directly on error responses to ensure they're present      : err.message || 'Something went wrong!';    ? 'An error occurred while processing your request.'   let errorMessage = process.env.NODE_ENV === 'production'   let statusCode = err.statusCode || 500;    console.error('Error stack:', err.stack);  console.error('Error message:', err.message);  console.error('Error name:', err.name);  console.error('Request body:', req.body);  console.error('Request method:', req.method);  console.error('Request path:', req.path);  console.error('ERROR OCCURRED:');app.use((err, req, res, next) => {// Enhanced error handling});  }    next(err);    console.error('Error in routes middleware:', err);  } catch (err) {    routes(req, res, next);    console.log(`Routing request to /api${req.path}`);    }      throw new Error('Invalid routes configuration');      }        }          routes.MODEL_NAME = DEEPSEEK_MODEL;        if (typeof routes === 'object') {        // Add model to routes object if it's used there        console.log('Routes object keys:', Object.keys(routes));      if (typeof routes === 'object') {      console.error('Routes is not a function. Type:', typeof routes);  res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   

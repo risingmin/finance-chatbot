@@ -16,16 +16,27 @@ services:
       - type: rewrite
         source: /*
         destination: /index.html
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
   
   # Backend API service configuration
   - type: web
     name: finance-chatbot-api
     runtime: node
     rootDir: backend
-    buildCommand: npm install
+    plan: free # Specify free plan (wake on request)
+    buildCommand: npm install 
     startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
         value: 10000
+      - key: ALLOWED_ORIGINS
+        value: https://finance-chatbot.onrender.com
+    headers:
+      - path: /*
+        name: Access-Control-Allow-Origin
+        value: "*"
