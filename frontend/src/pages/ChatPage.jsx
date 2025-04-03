@@ -12,52 +12,54 @@ const ChatPage = () => {
   const [lastAttemptTime, setLastAttemptTime] = useState(null); // Track when we last tried to connect
   
   // API URL from environment variables or fallback to default
-  const API_URL = import.meta.env.VITE_API_URL || 'https://finance-chatbot-api.onrender.com/api/chat';
-  const BASE_URL = API_URL.includes('/api/') ? API_URL.split('/api/')[0] : 'https://finance-chatbot-api.onrender.com';
+  // Fix API URL construction - make it consistent
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://finance-chatbot-api.onrender.com';
+  const API_ENDPOINT = '/api/chat'; 
+  const API_URL = `${API_BASE_URL}${API_BASE_URL.endsWith('/') ? '' : '/'}${API_ENDPOINT.startsWith('/') ? API_ENDPOINT.substring(1) : API_ENDPOINT}`;
+  
+  // For health/status checks
+  const BASE_URL = API_BASE_URL;
+  
+  console.log('Using API Base URL:', API_BASE_URL);
+  console.log('Using complete API URL:', API_URL);
   
   // Function to check if API is available - defined with useCallback so we can reference it in retries
   const checkApiConnection = useCallback(async () => {
     try {
       setLastAttemptTime(new Date().toLocaleTimeString());
-      // Show that we're checking the connection
       setApiStatus('checking');
       
-      // Try health endpoint first
-      const healthEndpoint = `${BASE_URL}/health`;
-      console.log('Checking API health at:', healthEndpoint);
+      // Try different endpoints in sequence
+      const endpointsToTry = [
+        { url: `${BASE_URL}/health`, name: 'Health' },
+        { url: `${BASE_URL}/api/ping`, name: 'Ping' },
+        { url: `${BASE_URL}/`, name: 'Root' }
+      ];
       
-      try {
-        const response = await axios.get(healthEndpoint, {
-          timeout: 20000 // 20 seconds timeout - Render cold starts can take time
-        });
-        
-        console.log('API health check response:', response.data);
-        setApiStatus('connected');
-        return true;
-      } catch (healthError) {
-        console.log('Health check failed, trying direct API ping...');
-        
-        // If health endpoint fails, try the main API ping endpoint as fallback
-        const pingEndpoint = `${BASE_URL}/api/ping`;
-        console.log('Trying ping endpoint:', pingEndpoint);
-        
+      for (const endpoint of endpointsToTry) {
         try {
-          const pingResponse = await axios.get(pingEndpoint, { 
+          console.log(`Trying ${endpoint.name} endpoint at: ${endpoint.url}`);
+          const response = await axios.get(endpoint.url, {
             timeout: 20000,
             headers: {
               'Accept': 'application/json',
+              // Add cache-busting query param to avoid cached responses
+              'Cache-Control': 'no-cache'  
             }
           });
           
-          console.log('API ping response:', pingResponse.data);
+          console.log(`${endpoint.name} endpoint responded:`, response.data);
           setApiStatus('connected');
           return true;
-        } catch (pingError) {
-          // Both checks failed
-          console.error('All API connection attempts failed');
-          throw pingError; // Re-throw to be caught by outer catch
+        } catch (error) {
+          console.log(`${endpoint.name} endpoint failed:`, error.message);
+          // Continue to next endpoint
         }
       }
+      
+      // If we get here, all endpoints failed
+      throw new Error("All API endpoints failed to respond");
+      
     } catch (error) {
       // More detailed error logging
       console.error('API connection check failed:', error.message);
@@ -150,15 +152,22 @@ const ChatPage = () => {
         }
       }
       
-      // Send the message to the API
+      // Send the message to the API with updated options for debugging
       const response = await axios.post(API_URL, {
         message: userInput,
       }, {
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
+          'X-Client-Version': '1.0.0',  // Add client version for debugging
+          'X-Request-Time': new Date().toISOString()  // Timestamp 
         },
-        timeout: 45000 // 45 seconds timeout - Give Render plenty of time to wake up and respond
+        timeout: 45000,  // 45 seconds timeout
+        // Add request ID for tracing
+        transformRequest: [(data, headers) => {
+          headers['X-Request-ID'] = Date.now().toString(36) + Math.random().toString(36).substr(2);
+          return JSON.stringify(data);
+        }]
       });
       
       console.log('Response data:', response.data);
@@ -181,11 +190,17 @@ const ChatPage = () => {
       
     } catch (error) {
       console.error('Error details:', error.message);
+      // Add deeper inspection of server error responses
       if (error.response) {
-        console.error('Status:', error.response.status);
-        console.error('Data:', error.response.data);
+        console.error('Server responded with error status:', error.response.status);
+        console.error('Response headers:', error.response.headers);
+        console.error('Response data:', error.response.data);
       } else if (error.request) {
-        console.error('No response received from server');
+        console.error('No response received from server. Request details:', {
+          url: error.request.url || API_URL,
+          method: error.request.method || 'POST',
+          timeout: error.request.timeout || '45000ms'
+        });
       }
       
       setApiStatus('error');
@@ -227,10 +242,10 @@ const ChatPage = () => {
     <div className="chat-page">
       <h1>Finance Assistant</h1>
       
-      {/* Show appropriate API status message with more details about Render behavior */}
+      {/* Add more detailed API connection info */}
       {apiStatus === 'checking' && (
         <div className="api-status checking">
-          Connecting to backend API... This may take a moment if the service is starting up.
+          Connecting to backend API at {BASE_URL}... This may take a moment if the service is starting up.
         </div>
       )}
       
@@ -305,8 +320,8 @@ const ChatPage = () => {
         </form>
       </div>
       
-      <div className="debug-info" style={{fontSize: '12px', color: '#666', marginTop: '10px'}}>
-        API URL: {API_URL} | Status: {apiStatus} | Retry count: {retryCount}/3 | Base URL: {BASE_URL}
+      <div className="debug-info" style={{fontSize: '12px', color: '#666', marginTop: '10px'}}></div>
+        API Base URL: {BASE_URL} | Full Endpoint: {API_URL} | Status: {apiStatus} | Retry count: {retryCount}/3
       </div>
     </div>
   );

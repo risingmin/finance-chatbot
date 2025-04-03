@@ -62,14 +62,47 @@ app.use((req, res, next) => {
   next();
 });
 
-// Add a simple health check endpoint
+// Add an improved health check endpoint with more information
 app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok' });
+  const uptime = process.uptime();
+  const uptimeFormatted = `${Math.floor(uptime / 3600)}h ${Math.floor((uptime % 3600) / 60)}m ${Math.floor(uptime % 60)}s`;
+  
+  res.status(200).json({ 
+    status: 'ok', 
+    time: new Date().toISOString(),
+    uptime: uptimeFormatted,
+    environment: process.env.NODE_ENV || 'development',
+    nodeVersion: process.version
+  });
 });
 
 // Add a simple ping endpoint that's easier to access
 app.get('/api/ping', (req, res) => {
-  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.status(200).json({ 
+    status: 'ok', 
+    message: 'pong',
+    timestamp: new Date().toISOString() 
+  });
+});
+
+// Add a debug endpoint that shows CORS headers
+app.get('/api/cors-test', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    message: 'CORS test successful',
+    headers: {
+      received: {
+        origin: req.headers.origin,
+        referer: req.headers.referer,
+        host: req.headers.host,
+      },
+      sent: {
+        'Access-Control-Allow-Origin': res.getHeader('Access-Control-Allow-Origin'),
+        'Access-Control-Allow-Methods': res.getHeader('Access-Control-Allow-Methods'),
+        'Access-Control-Allow-Headers': res.getHeader('Access-Control-Allow-Headers'),
+      }
+    }
+  });
 });
 
 // Add a debug endpoint to test core functionality
