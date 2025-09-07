@@ -23,6 +23,8 @@
     "@vitejs/plugin-react": "^4.0.0",
     "eslint": "^8.42.0",
     "eslint-plugin-react": "^7.32.2",
+    "@babel/eslint-parser": "^7.22.0",
+    "@babel/core": "^7.22.0",
     "terser": "^5.19.2"
   },
   "keywords": [

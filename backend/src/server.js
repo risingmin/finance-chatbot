@@ -21,7 +21,23 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'ok', 
     timestamp: new Date().toISOString(),
-    uptime: `${Math.floor(process.uptime() / 3600)}h ${Math.floor((process.uptime() % 3600) / 60)}m`
+    uptime: `${Math.floor(process.uptime() / 3600)}h ${Math.floor((process.uptime() % 3600) / 60)}m`,
+    environment: process.env.NODE_ENV || 'development',
+    port: process.env.PORT || 'not set'
+  });
+});
+
+// Root endpoint for Render
+app.get('/', (req, res) => {
+  res.json({ 
+    message: 'Finance Chatbot API is running!',
+    endpoints: {
+      health: '/health',
+      chat: '/api/chat',
+      testGemini: '/api/test-gemini',
+      finance: '/api/finance'
+    },
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -43,7 +59,16 @@ app.use((req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📁 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔑 Gemini API Key available: ${!!process.env.GEMINI_API_KEY}`);
+  console.log(`🌐 CORS origins: ${JSON.stringify(['http://localhost:3000', 'https://finance-chatbot.onrender.com'])}`);
+  console.log(`📋 Available endpoints:`);
+  console.log(`   - GET  / (root)`);
+  console.log(`   - GET  /health`);
+  console.log(`   - POST /api/chat`);
+  console.log(`   - GET  /api/test-gemini`);
+  console.log(`   - GET  /api/finance`);
 });
 
 module.exports = app;

@@ -32,7 +32,7 @@ if (!allFilesExist) {
 }
 
 // Check for syntax errors with ESLint (if available)
-exec('npx eslint --no-eslintrc --parser-options=jsx:true --parser @babel/eslint-parser src/**/*.jsx', (error, stdout, stderr) => {
+exec('npx eslint src/**/*.jsx', (error, stdout, stderr) => {
   if (error) {
     console.log('⚠️ ESLint found potential issues:');
     console.log(stdout || stderr);

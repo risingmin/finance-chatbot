@@ -8,7 +8,7 @@ const App = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://finance-chatbot-api.onrender.com');
+  const API_URL = import.meta.env.VITE_API_URL || 'https://finance-chatbot-api.onrender.com';
 
   const testConnection = async () => {
     setIsLoading(true);
@@ -117,6 +117,9 @@ const App = () => {
         >
           Test Backend Connection
         </button>
+        <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
+          API URL: {API_URL}
+        </div>
       </div>
       
       <div style={{ 
