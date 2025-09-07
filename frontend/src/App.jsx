@@ -8,7 +8,31 @@ const App = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'https://finance-chatbot-api.onrender.com';
+  const API_URL = import.meta.env.VITE_API_URL || (window.location.hostname === 'localhost' ? 'http://localhost:3001' : 'https://finance-chatbot-api.onrender.com');
+
+  const testConnection = async () => {
+    setIsLoading(true);
+    try {
+      const response = await axios.get(`${API_URL}/health`, {
+        timeout: 10000
+      });
+      const testMessage = { 
+        id: Date.now(),
+        text: `✅ Backend connection successful! Status: ${response.data.status}`,
+        sender: 'bot'
+      };
+      setMessages(prev => [...prev, testMessage]);
+    } catch (error) {
+      const errorMessage = { 
+        id: Date.now(),
+        text: `❌ Backend connection failed: ${error.message}`,
+        sender: 'bot'
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -41,10 +65,25 @@ const App = () => {
       setMessages(prev => [...prev, botMessage]);
       
     } catch (error) {
-      console.error('Error:', error.message);
+      console.error('Error details:', error.message);
+      console.error('Error response:', error.response?.data);
+      console.error('Error status:', error.response?.status);
+      
+      let errorText = "Sorry, I couldn't connect to the backend service. ";
+      
+      if (error.response?.status === 404) {
+        errorText += "The API endpoint was not found (404).";
+      } else if (error.response?.status === 500) {
+        errorText += "The backend server had an error (500).";
+      } else if (!error.response) {
+        errorText += "The backend server didn't respond. It may be sleeping on Render.com.";
+      } else {
+        errorText += `Error: ${error.message}`;
+      }
+      
       const errorMessage = { 
         id: Date.now() + 1,
-        text: "Sorry, I couldn't connect to the backend service. Please try again later.",
+        text: errorText,
         sender: 'bot'
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -61,6 +100,24 @@ const App = () => {
       fontFamily: 'Arial, sans-serif'
     }}>
       <h1 style={{ textAlign: 'center', color: '#333' }}>Finance Assistant</h1>
+      
+      <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+        <button 
+          onClick={testConnection}
+          disabled={isLoading}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#28a745',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '14px'
+          }}
+        >
+          Test Backend Connection
+        </button>
+      </div>
       
       <div style={{ 
         border: '1px solid #ddd', 
