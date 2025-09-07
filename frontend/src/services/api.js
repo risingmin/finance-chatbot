@@ -1,15 +1,20 @@
 import axios from 'axios';
 
-// Get base URL from environment or default with trailing slash handling
-const apiBaseURL = import.meta.env.VITE_API_URL || 'https://finance-chatbot-api.onrender.com';
-// Ensure the URL doesn't have a trailing slash for consistency
-const normalizedBaseURL = apiBaseURL.endsWith('/') ? apiBaseURL.slice(0, -1) : apiBaseURL;
+// Determine environment-aware base URL
+const isDev = import.meta.env.DEV;
+const configuredBase = (import.meta.env.VITE_API_URL || '').trim();
+const defaultRemote = 'https://finance-chatbot-api.onrender.com';
+
+// In dev, use relative paths so Vite proxy handles requests; in prod, use configured or default remote
+const apiBaseURL = isDev ? '' : (configuredBase || defaultRemote);
+// Ensure the URL doesn't have a trailing slash for consistency (no-op for empty string)
+const normalizedBaseURL = apiBaseURL && apiBaseURL.endsWith('/') ? apiBaseURL.slice(0, -1) : apiBaseURL;
 
 // Log the actual API URL being used
-console.log('API Service initialized with base URL:', normalizedBaseURL);
+console.log('API Service initialized with base URL:', normalizedBaseURL || '(relative via dev proxy)');
 
 const api = axios.create({
-  baseURL: normalizedBaseURL,
+  baseURL: normalizedBaseURL, // '' in dev -> relative requests
   timeout: 30000, // 30 seconds default timeout
   headers: {
     'Content-Type': 'application/json',
@@ -21,7 +26,7 @@ const api = axios.create({
 api.interceptors.request.use(
   config => {
     // Construct and log the complete URL for debugging
-    const fullUrl = `${config.baseURL}${config.url}`;
+    const fullUrl = `${config.baseURL || ''}${config.url}`;
     console.log(`Sending ${config.method.toUpperCase()} request to: ${fullUrl}`);
     console.log('Request headers:', config.headers);
     
@@ -84,8 +89,9 @@ api.interceptors.response.use(
         timeout: error.config?.timeout
       });
       
-      if (error.config?.baseURL?.includes('render.com')) {
-        console.warn('No response from Render.com service. It might be in sleep mode and takes 1-3 minutes to wake up.');
+      const baseForCheck = error.config?.baseURL || '';
+      if (baseForCheck.includes('render.com') || isDev) {
+        console.warn('No response from API. On Render.com free tier, the service may be in sleep mode and take 1-3 minutes to wake up.');
       }
     } else {
       console.error('API request setup error:', error.message);
@@ -94,7 +100,7 @@ api.interceptors.response.use(
   }
 );
 
-// Test multiple connection paths
+// Test multiple connection paths (runs once on import)
 const testConnection = () => {
   console.log('Testing API connection with multiple path variations...');
   
@@ -109,7 +115,7 @@ const testConnection = () => {
   ];
   
   endpoints.forEach(endpoint => {
-    api.get(endpoint)
+    api.get(endpoint, { timeout: 20000 })
       .then(response => {
         console.log(`Connection test to ${endpoint} successful:`, response.data);
       })
@@ -120,6 +126,6 @@ const testConnection = () => {
 };
 
 // Run the test immediately
-testConnection();
+try { testConnection(); } catch (_) { /* ignore */ }
 
 export default api;

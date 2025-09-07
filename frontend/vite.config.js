@@ -36,6 +36,12 @@ export default defineConfig({
             console.log('Received Response:', proxyRes.statusCode, req.url);
           });
         }
+      },
+      // Added health check proxy to forward to backend in dev
+      '/health': {
+        target: 'https://finance-chatbot-api.onrender.com',
+        changeOrigin: true,
+        secure: true
       }
     },
     cors: true

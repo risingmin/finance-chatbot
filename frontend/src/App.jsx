@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import axios from 'axios';
+// Use shared API client
+import api from './services/api';
 
 const App = () => {
   const [messages, setMessages] = useState([
@@ -8,13 +9,14 @@ const App = () => {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'https://finance-chatbot-api.onrender.com';
+  // Display which API base is used
+  const apiLabel = import.meta.env.DEV ? 'via dev proxy' : (import.meta.env.VITE_API_URL || 'https://finance-chatbot-api.onrender.com');
 
   const testConnection = async () => {
     setIsLoading(true);
     try {
-      const response = await axios.get(`${API_URL}/health`, {
-        timeout: 10000
+      const response = await api.get('/health', {
+        timeout: 60000
       });
       const testMessage = { 
         id: Date.now(),
@@ -50,11 +52,11 @@ const App = () => {
     setIsLoading(true);
     
     try {
-      const response = await axios.post(`${API_URL}/api/chat`, {
+      const response = await api.post('/api/chat', {
         message: userInput,
       }, {
         headers: { 'Content-Type': 'application/json' },
-        timeout: 30000
+        timeout: 45000
       });
       
       const botMessage = { 
@@ -118,7 +120,7 @@ const App = () => {
           Test Backend Connection
         </button>
         <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
-          API URL: {API_URL} | Status: Ready
+          API: {apiLabel} | Status: Ready
         </div>
       </div>
       

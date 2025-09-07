@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import api from '@/services/api';
 import { formatChatMessage, createMarkup } from '../utils/messageFormatter';
 
 const ChatPage = () => {
@@ -11,25 +11,11 @@ const ChatPage = () => {
   const [retryCount, setRetryCount] = useState(0); // Track API connection retry attempts
   const [lastAttemptTime, setLastAttemptTime] = useState(null); // Track when we last tried to connect
   
-  // API URL construction with better handling of slashes
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://finance-chatbot-api.onrender.com';
-  // Ensure consistent base URL without trailing slash
-  const normalizedBaseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
+  // In dev, requests go through Vite proxy; in prod, api has full baseURL
   const API_ENDPOINT = '/api/chat';
-  // Build URL ensuring exactly one slash between parts
-  const API_URL = `${normalizedBaseUrl}${API_ENDPOINT}`;
-  
-  // Also create an alternative URL without the /api prefix in case the server uses a different structure
-  const ALT_API_URL = `${normalizedBaseUrl}/chat`;
-  
-  // For health/status checks
-  const BASE_URL = normalizedBaseUrl;
-  
-  console.log('Using API URLs:', {
-    base: BASE_URL,
-    primary: API_URL,
-    alternative: ALT_API_URL
-  });
+  const ALT_API_ENDPOINT = '/chat';
+
+  console.log('Using API endpoints:', { primary: API_ENDPOINT, alternative: ALT_API_ENDPOINT });
   
   // Function to check if API is available - defined with useCallback so we can reference it in retries
   const checkApiConnection = useCallback(async () => {
@@ -37,23 +23,18 @@ const ChatPage = () => {
       setLastAttemptTime(new Date().toLocaleTimeString());
       setApiStatus('checking');
       
-      // Try different endpoints in sequence
+      // Try different endpoints in sequence (relative paths in dev)
       const endpointsToTry = [
-        { url: `${BASE_URL}/health`, name: 'Health' },
-        { url: `${BASE_URL}/api/ping`, name: 'Ping' },
-        { url: `${BASE_URL}/`, name: 'Root' }
+        { url: '/health', name: 'Health' },
+        { url: '/api/test-gemini', name: 'Test Gemini' }
       ];
       
       for (const endpoint of endpointsToTry) {
         try {
           console.log(`Trying ${endpoint.name} endpoint at: ${endpoint.url}`);
-          const response = await axios.get(endpoint.url, {
-            timeout: 20000,
-            headers: {
-              'Accept': 'application/json',
-              // Add cache-busting query param to avoid cached responses
-              'Cache-Control': 'no-cache'  
-            }
+          const response = await api.get(endpoint.url, {
+            timeout: 30000,
+            headers: { 'Accept': 'application/json', 'Cache-Control': 'no-cache' }
           });
           
           console.log(`${endpoint.name} endpoint responded:`, response.data);
@@ -66,7 +47,7 @@ const ChatPage = () => {
       }
       
       // If we get here, all endpoints failed
-      throw new Error("All API endpoints failed to respond");
+      throw new Error('All API endpoints failed to respond');
       
     } catch (error) {
       // More detailed error logging
@@ -86,7 +67,7 @@ const ChatPage = () => {
       }
       return false;
     }
-  }, [BASE_URL, retryCount]);
+  }, [retryCount]);
   
   // Manual retry function for user-initiated retries
   const handleManualRetry = () => {
@@ -96,7 +77,6 @@ const ChatPage = () => {
   
   // Add a welcome message when the component mounts
   useEffect(() => {
-    // Only add welcome message if we don't already have messages
     if (messages.length === 0) {
       const welcomeMessage = {
         id: Date.now(),
@@ -114,9 +94,8 @@ const ChatPage = () => {
       const attemptConnection = async () => {
         const success = await checkApiConnection();
         
-        // If not successful and we haven't retried too many times, try again after a delay
         if (!success && retryCount < 3) {
-          // Use exponential backoff: 5s, 10s, 20s
+          // Exponential backoff: 5s, 10s, 20s
           const retryDelay = 5000 * Math.pow(2, retryCount);
           console.log(`Will retry API connection in ${retryDelay/1000}s...`);
           
@@ -147,55 +126,42 @@ const ChatPage = () => {
     setIsLoading(true);
     
     try {
-      console.log('Attempting to send request to:', API_URL);
+      console.log('Attempting to send request to:', API_ENDPOINT);
       
       // Try to reconnect if in error state
       if (apiStatus === 'error') {
         const reconnected = await checkApiConnection();
         if (!reconnected) {
-          // If we still can't connect, but haven't tried recently, give it another chance
-          // This helps with Render's cold start behavior
           throw new Error('Backend API is unavailable. It may be in sleep mode and take a few minutes to start.');
         }
       }
       
-      // First try the primary API URL
+      // First try the primary API endpoint
       let response;
       try {
-        response = await axios.post(API_URL, {
-          message: userInput,
-        }, {
+        response = await api.post(API_ENDPOINT, { message: userInput }, {
           headers: {
             'Content-Type': 'application/json',
             'Accept': 'application/json',
-            'X-Client-Version': '1.0.0',  // Add client version for debugging
-            'X-Request-Time': new Date().toISOString()  // Timestamp 
+            'X-Client-Version': '1.0.0',
+            'X-Request-Time': new Date().toISOString()
           },
-          timeout: 45000,  // 45 seconds timeout
-          // Add request ID for tracing
+          timeout: 45000,
           transformRequest: [(data, headers) => {
             headers['X-Request-ID'] = Date.now().toString(36) + Math.random().toString(36).substr(2);
             return JSON.stringify(data);
           }]
         });
-        
-        console.log('Response received from primary URL:', response.data);
+        console.log('Response received from primary endpoint:', response.data);
       } catch (primaryError) {
-        // If the primary URL fails with 404, try the alternative URL
         if (primaryError.response?.status === 404) {
-          console.log('Primary API URL returned 404, trying alternative URL:', ALT_API_URL);
-          response = await axios.post(ALT_API_URL, {
-            message: userInput,
-          }, {
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json'
-            },
+          console.log('Primary API endpoint returned 404, trying alternative endpoint:', ALT_API_ENDPOINT);
+          response = await api.post(ALT_API_ENDPOINT, { message: userInput }, {
+            headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
             timeout: 45000
           });
-          console.log('Response received from alternative URL:', response.data);
+          console.log('Response received from alternative endpoint:', response.data);
         } else {
-          // If it's not a 404 error, re-throw it
           throw primaryError;
         }
       }
@@ -220,17 +186,12 @@ const ChatPage = () => {
       
     } catch (error) {
       console.error('Error details:', error.message);
-      // Add deeper inspection of server error responses
       if (error.response) {
         console.error('Server responded with error status:', error.response.status);
         console.error('Response headers:', error.response.headers);
         console.error('Response data:', error.response.data);
       } else if (error.request) {
-        console.error('No response received from server. Request details:', {
-          url: error.request.url || API_URL,
-          method: error.request.method || 'POST',
-          timeout: error.request.timeout || '45000ms'
-        });
+        console.error('No response received from server.');
       }
       
       setApiStatus('error');
@@ -242,18 +203,9 @@ const ChatPage = () => {
       };
       
       if (error.response && error.response.status === 404) {
-        errorMessage.text += "The API endpoint was not found (404). I tried multiple URL formats but none worked. The API might be configured differently than expected.";
-        
-        // Add more technical details for debugging
-        console.error('404 Not Found Error Details:', {
-          primaryUrl: API_URL,
-          alternativeUrl: ALT_API_URL,
-          baseUrl: BASE_URL,
-          responseData: error.response.data,
-          headers: error.response.headers
-        });
+        errorMessage.text += "The API endpoint was not found (404). I tried multiple URL formats but none worked.";
       } else if (!error.response && error.request) {
-        errorMessage.text += "The server didn't respond. It may be in sleep mode on Render.com. This is normal behavior and it can take up to 2-3 minutes to start up. Please try again in a moment.";
+        errorMessage.text += "The server didn't respond. It may be in sleep mode on Render.com. This can take 1-3 minutes to start up.";
       } else {
         errorMessage.text += `Error: ${error.message}`;
       }
@@ -284,7 +236,7 @@ const ChatPage = () => {
       {/* Add more detailed API connection info */}
       {apiStatus === 'checking' && (
         <div className="api-status checking">
-          Connecting to backend API at {BASE_URL}... This may take a moment if the service is starting up.
+          Connecting to backend API... This may take a moment if the service is starting up.
         </div>
       )}
       
@@ -360,7 +312,7 @@ const ChatPage = () => {
       </div>
       
       <div className="debug-info" style={{fontSize: '12px', color: '#666', marginTop: '10px'}}>
-        API Base URL: {BASE_URL} | Full Endpoint: {API_URL} | Status: {apiStatus} | Retry count: {retryCount}/3
+        API Status: {apiStatus} | Retry count: {retryCount}/3
       </div>
     </div>
   );
