@@ -1,4 +1,5 @@
 // API Configuration
+// This config file is deprecated. Use VITE_API_URL from environment variables instead.
 const API_CONFIG = {
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000',
   apiKey: import.meta.env.VITE_API_KEY, 

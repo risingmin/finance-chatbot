@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
-import config from '../config';
 
-const API_URL = import.meta.env.VITE_API_URL || '';
+const API_URL = import.meta.env.VITE_API_URL || 'https://finance-chatbot-api.onrender.com';
 
 const useChatApi = () => {
     const [messages, setMessages] = useState([]);
