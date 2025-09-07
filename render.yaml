@@ -34,6 +34,8 @@ services:
         value: production
       - key: PORT
         value: 10000
+      - key: GEMINI_API_KEY
+        value: AIzaSyBB8eg_6VCS9OJWC_aBHL4b1n2UOv8b9qo
       - key: ALLOWED_ORIGINS
         value: https://finance-chatbot.onrender.com
     headers:

@@ -31,4 +31,22 @@ router.get('/finance', async (req, res) => {
   }
 });
 
+// Test Gemini API endpoint
+router.get('/test-gemini', async (req, res) => {
+  try {
+    const testResponse = await llamaService.getResponse('Hello, can you say hi back?');
+    res.json({ 
+      success: true, 
+      message: 'Gemini API is working!',
+      response: testResponse 
+    });
+  } catch (error) {
+    console.error('Gemini test error:', error.message);
+    res.status(500).json({ 
+      error: 'Gemini API test failed', 
+      details: error.message 
+    });
+  }
+});
+
 module.exports = router;
