@@ -5,20 +5,27 @@ const isDev = import.meta.env.DEV;
 const rawConfiguredBase = (import.meta.env.VITE_API_URL || '').trim();
 const defaultRemote = 'https://finance-chatbot-api.onrender.com';
 
-// Sanitize configured base to origin only (strip any path like /api or /api/chat)
-let configuredBase = rawConfiguredBase;
-try {
-  if (configuredBase && /^(http|https):\/\//i.test(configuredBase)) {
-    const parsed = new URL(configuredBase);
-    const originOnly = parsed.origin; // e.g., https://finance-chatbot-api.onrender.com
-    if (parsed.pathname && parsed.pathname !== '/' ) {
-      console.warn('[API] VITE_API_URL contains a path (', parsed.pathname, '). Using origin only:', originOnly);
+// Normalize configured base to origin only (no path) even if scheme is missing
+function toOriginOnly(value) {
+  if (!value) return '';
+  let v = value.trim();
+  try {
+    // If missing scheme, try to coerce
+    if (!/^(http|https):\/\//i.test(v)) {
+      if (v.startsWith('//')) v = `https:${v}`; else v = `https://${v}`;
     }
-    configuredBase = originOnly;
+    const u = new URL(v);
+    return u.origin; // e.g., https://host.tld[:port]
+  } catch {
+    // Fallback: strip any path after first '/'
+    const idx = v.indexOf('/');
+    return idx === -1 ? v : v.slice(0, idx);
   }
-} catch (e) {
-  console.warn('[API] Invalid VITE_API_URL, falling back to default. Value:', configuredBase);
-  configuredBase = '';
+}
+
+const configuredBase = toOriginOnly(rawConfiguredBase);
+if (rawConfiguredBase && configuredBase !== rawConfiguredBase) {
+  console.warn('[API] Normalized VITE_API_URL to origin:', configuredBase, '(from', rawConfiguredBase, ')');
 }
 
 // In dev, use relative paths so Vite proxy handles requests; in prod, use configured or default remote
@@ -80,17 +87,16 @@ api.interceptors.response.use(
         console.error('Tried URL:', `${error.config?.baseURL || ''}${error.config?.url || ''}`);
         
         // Try alternative endpoint paths for chat if that's what failed
-        if (error.config?.url === '/api/chat' || error.config?.url === 'api/chat') {
+        const urlPath = (error.config?.url || '').replace(/^https?:\/\/.+?\//, '/');
+        if (urlPath === '/api/chat' || urlPath === 'api/chat') {
           console.log('Attempting to use alternative chat endpoint...');
           
-          // Create a new request with slightly different path
-          const newUrl = error.config.url.startsWith('/') ? 
-            error.config.url : `/${error.config.url}`;
-          
-          // We'll retry with an adjusted URL, but return the original error
           axios({
             ...error.config,
-            url: newUrl === '/api/chat' ? '/chat' : '/api/chat'  // Try alternative path
+            baseURL: error.config?.baseURL && error.config.baseURL.endsWith('/api/chat')
+              ? error.config.baseURL.replace(/\/api\/chat$/, '')
+              : error.config?.baseURL,
+            url: '/chat'  // Try alternative path
           }).then(response => {
             console.log('Alternative endpoint succeeded:', response.data);
           }).catch(retryError => {
@@ -120,14 +126,13 @@ api.interceptors.response.use(
 const testConnection = () => {
   console.log('Testing API connection with multiple path variations...');
   
-  // Try different endpoint variations
   const endpoints = [
     '/health',
     '/api/ping',
     '/',
-    '/api/chat',  // API chat endpoint
-    '/chat',      // Alternative path without /api prefix
-    '/api'        // Just the API root
+    '/api/chat',
+    '/chat',
+    '/api'
   ];
   
   endpoints.forEach(endpoint => {
@@ -141,7 +146,6 @@ const testConnection = () => {
   });
 };
 
-// Run the test immediately
 try { testConnection(); } catch (_) { /* ignore */ }
 
 export default api;
