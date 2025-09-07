@@ -118,7 +118,7 @@ const App = () => {
           Test Backend Connection
         </button>
         <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
-          API URL: {API_URL}
+          API URL: {API_URL} | Status: Ready
         </div>
       </div>
       
