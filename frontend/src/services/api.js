@@ -2,8 +2,24 @@ import axios from 'axios';
 
 // Determine environment-aware base URL
 const isDev = import.meta.env.DEV;
-const configuredBase = (import.meta.env.VITE_API_URL || '').trim();
+const rawConfiguredBase = (import.meta.env.VITE_API_URL || '').trim();
 const defaultRemote = 'https://finance-chatbot-api.onrender.com';
+
+// Sanitize configured base to origin only (strip any path like /api or /api/chat)
+let configuredBase = rawConfiguredBase;
+try {
+  if (configuredBase && /^(http|https):\/\//i.test(configuredBase)) {
+    const parsed = new URL(configuredBase);
+    const originOnly = parsed.origin; // e.g., https://finance-chatbot-api.onrender.com
+    if (parsed.pathname && parsed.pathname !== '/' ) {
+      console.warn('[API] VITE_API_URL contains a path (', parsed.pathname, '). Using origin only:', originOnly);
+    }
+    configuredBase = originOnly;
+  }
+} catch (e) {
+  console.warn('[API] Invalid VITE_API_URL, falling back to default. Value:', configuredBase);
+  configuredBase = '';
+}
 
 // In dev, use relative paths so Vite proxy handles requests; in prod, use configured or default remote
 const apiBaseURL = isDev ? '' : (configuredBase || defaultRemote);
