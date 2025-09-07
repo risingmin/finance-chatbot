@@ -1,7 +1,7 @@
 {
   "name": "finance-chatbot-backend",
   "version": "1.0.0",
-  "description": "Backend for the personal finance chatbot utilizing the Llama model.",
+  "description": "Backend for the personal finance chatbot utilizing Google Gemini AI.",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",

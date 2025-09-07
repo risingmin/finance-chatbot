@@ -1,7 +1,7 @@
 {
   "name": "finance-chatbot",
   "version": "1.0.0",
-  "description": "A personal finance chatbot that utilizes the Llama model.",
+  "description": "A personal finance chatbot that utilizes Google Gemini AI.",
   "main": "src/main.jsx",
   "scripts": {
     "start": "vite",
@@ -29,7 +29,8 @@
     "finance",
     "chatbot",
     "react",
-    "llama"
+    "gemini",
+    "ai"
   ],
   "author": "Your Name",
   "license": "MIT",
