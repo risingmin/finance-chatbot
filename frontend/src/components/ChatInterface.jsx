@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import useChatApi from '../hooks/useChatApi';
+import { formatChatMessage, createMarkup } from '../utils/messageFormatter';
 import '../styles/components.css';
 
 const ChatInterface = () => {
@@ -43,7 +44,10 @@ const ChatInterface = () => {
                             <div className="message-sender">
                                 {msg.sender === 'user' ? 'You' : 'Finance Assistant'}
                             </div>
-                            <div className="message-text">{msg.text}</div>
+                            <div 
+                                className="message-text"
+                                dangerouslySetInnerHTML={createMarkup(formatChatMessage(msg.text))}
+                            />
                         </div>
                     </div>
                 ))}

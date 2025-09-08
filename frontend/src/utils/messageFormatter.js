@@ -20,6 +20,10 @@ export const formatChatMessage = (text) => {
   // Example: "Hello\n\nWorld" becomes "<p>Hello</p><p>World</p>"
   formattedText = formattedText.replace(/\n\n/g, '</p><p>');
   
+  // Step 2.5: Handle inline numbered lists (e.g., "1. Item one 2. Item two")
+  // First, add line breaks before numbered items that aren't at the start of a line
+  formattedText = formattedText.replace(/(\S)\s+(\d+)\.\s+/g, '$1\n$2. ');
+  
   // Step 3: Format numbered lists (like "1. Item one")
   // This finds lines that start with a number followed by a period and adds HTML list formatting
   formattedText = formattedText.replace(
