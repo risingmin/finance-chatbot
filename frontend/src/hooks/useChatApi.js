@@ -2,7 +2,9 @@ import { useState, useCallback } from 'react';
 import api from '@/services/api';
 
 const useChatApi = () => {
-    const [messages, setMessages] = useState([]);
+    const [messages, setMessages] = useState([
+        { text: "Hello! I'm your personal finance assistant. How can I help you today?", sender: 'bot' }
+    ]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
@@ -20,11 +22,20 @@ const useChatApi = () => {
             });
             
             const data = response.data || {};
-            const botText = data.response || data.reply || data.message || data.text || 'I could not generate a response.';
+            const botText = data.reply || data.response || data.message || data.text || 'I could not generate a response.';
             setMessages(prev => [...prev, { text: botText, sender: 'bot' }]);
         } catch (err) {
             console.error('Error in chat API:', err);
-            setError(err.message || 'An error occurred while sending your message');
+
+            const status = err.response?.status;
+            const detail = err.response?.data?.error || err.response?.data?.details;
+            const friendly = status
+              ? `The assistant is unavailable (status ${status}). ${detail || 'Please try again shortly.'}`
+              : 'Unable to reach the assistant. Check your connection or try again in a moment.';
+
+            setError(friendly);
+            // Also surface in the chat stream
+            setMessages(prev => [...prev, { text: friendly, sender: 'bot' }]);
         } finally {
             setLoading(false);
         }

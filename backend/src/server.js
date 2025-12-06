@@ -6,10 +6,11 @@ const routes = require('./api/routes');
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const ALLOWED_ORIGINS = (process.env.FRONTEND_ORIGIN || 'http://localhost:3000').split(',');
 
 // CORS configuration
 app.use(cors({
-  origin: ['http://localhost:3000', 'https://finance-chatbot.onrender.com'],
+  origin: ALLOWED_ORIGINS,
   methods: ['GET', 'POST', 'OPTIONS'],
   credentials: true
 }));
@@ -61,8 +62,8 @@ app.use((req, res) => {
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📁 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🔑 Gemini API Key available: ${!!process.env.GEMINI_API_KEY}`);
-  console.log(`🌐 CORS origins: ${JSON.stringify(['http://localhost:3000', 'https://finance-chatbot.onrender.com'])}`);
+  console.log(`🔑 LLM API Key available: ${!!process.env.LLM_API_KEY}`);
+  console.log(`🌐 CORS origins: ${JSON.stringify(ALLOWED_ORIGINS)}`);
   console.log(`📋 Available endpoints:`);
   console.log(`   - GET  / (root)`);
   console.log(`   - GET  /health`);

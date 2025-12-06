@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import useChatApi from '../hooks/useChatApi';
 import { formatChatMessage, createMarkup } from '../utils/messageFormatter';
-import '../styles/components.css';
 
 const ChatInterface = () => {
     const { messages, loading, error, sendMessage } = useChatApi();
@@ -21,63 +20,67 @@ const ChatInterface = () => {
         }
     };
 
-    // Welcome message if no messages yet
-    useEffect(() => {
-        if (messages.length === 0) {
-            sendMessage("Hi there! I'm your personal finance assistant. How can I help you today?");
-        }
-    }, []);
-
     return (
-        <div className="chat-container">
+        <div className="chat-panel">
             <div className="chat-header">
-                <h2>Finance Assistant</h2>
+                <div>
+                    <div className="chat-title">Finance Assistant</div>
+                    <div className="chat-subtitle">Ask about budgeting, saving, debt payoff, and goals.</div>
+                </div>
+                <div className="pill">Live</div>
             </div>
-            
-            <div className="messages-container">
+
+            <div className="chat-stream">
+                {messages.length === 0 && (
+                    <div className="empty-state">Start by asking anything about your finances.</div>
+                )}
+
                 {messages.map((msg, index) => (
-                    <div key={index} className={`message ${msg.sender === 'user' ? 'user-message' : 'bot-message'}`}>
-                        <div className="message-avatar">
-                            {msg.sender === 'user' ? '👤' : '🤖'}
+                    <div key={index} className="chat-message">
+                        <div className="chat-avatar" aria-hidden>
+                            {msg.sender === 'user' ? '🧑' : '🤖'}
                         </div>
-                        <div className="message-bubble">
-                            <div className="message-sender">
-                                {msg.sender === 'user' ? 'You' : 'Finance Assistant'}
-                            </div>
-                            <div 
+                        <div className={`chat-bubble ${msg.sender === 'user' ? 'user' : 'bot'}`}>
+                            <div className="message-meta">{msg.sender === 'user' ? 'You' : 'Finance Coach'}</div>
+                            <div
                                 className="message-text"
                                 dangerouslySetInnerHTML={createMarkup(formatChatMessage(msg.text))}
                             />
                         </div>
                     </div>
                 ))}
+
                 {loading && (
-                    <div className="message bot-message">
-                        <div className="message-avatar">🤖</div>
-                        <div className="message-bubble">
-                            <div className="message-sender">Finance Assistant</div>
-                            <div className="message-text typing">
-                                <span></span>
-                                <span></span>
-                                <span></span>
+                    <div className="chat-message">
+                        <div className="chat-avatar" aria-hidden>🤖</div>
+                        <div className="chat-bubble">
+                            <div className="message-meta">Finance Coach</div>
+                            <div className="typing-dots">
+                                <span></span><span></span><span></span>
                             </div>
                         </div>
                     </div>
                 )}
+
                 {error && (
-                    <div className="error-message">
-                        Sorry, something went wrong. Please try again.
+                    <div className="chat-message">
+                        <div className="chat-avatar" aria-hidden>⚠️</div>
+                        <div className="chat-bubble">
+                            <div className="message-meta">Connection issue</div>
+                            <div className="message-text">{error}</div>
+                        </div>
                     </div>
                 )}
+
                 <div ref={messagesEndRef} />
             </div>
-            
-            <form onSubmit={handleSubmit} className="chat-input-container">
+
+            <form onSubmit={handleSubmit} className="chat-input-bar">
                 <textarea
-                    className="chat-input"
+                    className="chat-textarea"
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
-                    placeholder="Ask me about personal finance..."
+                    placeholder="Ask about budgets, savings plans, or debt payoff..."
                     onKeyDown={(e) => {
                         if (e.key === 'Enter' && !e.shiftKey) {
                             e.preventDefault();
@@ -88,13 +91,10 @@ const ChatInterface = () => {
                 />
                 <button 
                     type="submit" 
-                    className="send-button"
+                    className="btn btn-primary send-button"
                     disabled={loading || !input.trim()}
                 >
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M22 2L11 13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                    </svg>
+                    Send
                 </button>
             </form>
         </div>

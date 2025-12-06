@@ -2,21 +2,23 @@ const express = require('express');
 const router = express.Router();
 const llamaService = require('../services/llamaService');
 const financeService = require('../services/financeService');
+const { validateChatRequest } = require('../utils/validators');
 
 // Chat endpoint
 router.post('/chat', async (req, res) => {
   try {
-    const { message } = req.body;
-    
-    if (!message) {
-      return res.status(400).json({ error: 'Message is required' });
+    const validationError = validateChatRequest(req);
+    if (validationError) {
+      return res.status(400).json({ error: validationError });
     }
-    
-    const response = await llamaService.getResponse(message);
-    res.json({ response });
+
+    const { message } = req.body;
+    const reply = await llamaService.getResponse(message);
+    res.json({ reply });
   } catch (error) {
     console.error('Chat error:', error.message);
-    res.status(500).json({ error: 'Failed to process message' });
+    const status = error.response?.status || 500;
+    res.status(status).json({ error: 'Failed to process message', details: error.message });
   }
 });
 

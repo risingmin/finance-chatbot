@@ -2,10 +2,19 @@ import React from 'react';
 
 const FinanceTools = () => {
     return (
-        <div className="finance-tools">
-            <h2>Finance Tools</h2>
-            <p>Here you can find various tools and resources to manage your finances effectively.</p>
-            {/* Add more finance tools and functionalities here */}
+        <div className="page">
+            <div className="page-header">
+                <div>
+                    <div className="page-title">Finance Tools</div>
+                    <div className="page-subtitle">Simple calculators and guides to keep your plan on track.</div>
+                </div>
+                <div className="pill">Beta</div>
+            </div>
+
+            <div className="card" style={{ marginTop: '8px' }}>
+                <h2>Coming soon</h2>
+                <p>Budget templates, savings goal trackers, and debt payoff helpers will live here. For now, use the chat to get personalized steps.</p>
+            </div>
         </div>
     );
 };

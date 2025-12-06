@@ -1,198 +1,59 @@
-import React, { useState } from 'react';
-// Use shared API client
-import api from './services/api';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate, NavLink } from 'react-router-dom';
+import ChatInterface from './components/ChatInterface';
+import FinanceTools from './components/FinanceTools';
+import HomePage from './components/HomePage';
+import './index.css';
+import './styles/components.css';
+
+const navItems = [
+  { path: '/', label: 'Home', exact: true },
+  { path: '/chat', label: 'Chat' },
+  { path: '/finance-tools', label: 'Tools' },
+  { path: '/goals', label: 'Goals', disabled: true },
+  { path: '/history', label: 'History', disabled: true }
+];
+
+const Sidebar = () => (
+  <aside className="sidebar">
+    <div className="sidebar-header">
+      <div className="sidebar-title">Personal Finance AI</div>
+      <div className="sidebar-subtitle">Plan · Budget · Grow</div>
+    </div>
+    <nav className="sidebar-nav">
+      {navItems.map((item) => (
+        <NavLink
+          key={item.path}
+          to={item.path}
+          className={({ isActive }) =>
+            `nav-item ${isActive ? 'active' : ''} ${item.disabled ? 'disabled' : ''}`
+          }
+          onClick={(e) => item.disabled && e.preventDefault()}
+        >
+          <span className="nav-dot" aria-hidden />
+          <span>{item.label}</span>
+          {item.disabled && <span className="pill">Soon</span>}
+        </NavLink>
+      ))}
+    </nav>
+  </aside>
+);
 
 const App = () => {
-  const [messages, setMessages] = useState([
-    { id: 1, text: "Hello! I'm your personal finance assistant. How can I help you today?", sender: 'bot' }
-  ]);
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Display which API base is used
-  const apiLabel = import.meta.env.DEV ? 'via dev proxy' : (import.meta.env.VITE_API_URL || 'https://finance-chatbot-api.onrender.com');
-
-  const testConnection = async () => {
-    setIsLoading(true);
-    try {
-      const response = await api.get('/health', {
-        timeout: 60000
-      });
-      const testMessage = { 
-        id: Date.now(),
-        text: `✅ Backend connection successful! Status: ${response.data.status}`,
-        sender: 'bot'
-      };
-      setMessages(prev => [...prev, testMessage]);
-    } catch (error) {
-      const errorMessage = { 
-        id: Date.now(),
-        text: `❌ Backend connection failed: ${error.message}`,
-        sender: 'bot'
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleSendMessage = async (e) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
-
-    const userMessage = { 
-      id: Date.now(),
-      text: input, 
-      sender: 'user' 
-    };
-    setMessages(prev => [...prev, userMessage]);
-    
-    const userInput = input;
-    setInput('');
-    setIsLoading(true);
-    
-    try {
-      const response = await api.post('/api/chat', {
-        message: userInput,
-      }, {
-        headers: { 'Content-Type': 'application/json' },
-        timeout: 45000
-      });
-      
-      const botMessage = { 
-        id: Date.now() + 1,
-        text: response.data.response || "Sorry, I couldn't process that request.",
-        sender: 'bot'
-      };
-      setMessages(prev => [...prev, botMessage]);
-      
-    } catch (error) {
-      console.error('Error details:', error.message);
-      console.error('Error response:', error.response?.data);
-      console.error('Error status:', error.response?.status);
-      
-      let errorText = "Sorry, I couldn't connect to the backend service. ";
-      
-      if (error.response?.status === 404) {
-        errorText += "The API endpoint was not found (404).";
-      } else if (error.response?.status === 500) {
-        errorText += "The backend server had an error (500).";
-      } else if (!error.response) {
-        errorText += "The backend server didn't respond. It may be sleeping on Render.com.";
-      } else {
-        errorText += `Error: ${error.message}`;
-      }
-      
-      const errorMessage = { 
-        id: Date.now() + 1,
-        text: errorText,
-        sender: 'bot'
-      };
-      setMessages(prev => [...prev, errorMessage]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   return (
-    <div style={{ 
-      maxWidth: '800px', 
-      margin: '0 auto', 
-      padding: '20px',
-      fontFamily: 'Arial, sans-serif'
-    }}>
-      <h1 style={{ textAlign: 'center', color: '#333' }}>Finance Assistant</h1>
-      
-      <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-        <button 
-          onClick={testConnection}
-          disabled={isLoading}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: '#28a745',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '14px'
-          }}
-        >
-          Test Backend Connection
-        </button>
-        <div style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
-          API: {apiLabel} | Status: Ready
+    <BrowserRouter>
+      <div className="app-frame">
+        <Sidebar />
+        <div className="main-area">
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/chat" element={<ChatInterface />} />
+            <Route path="/finance-tools" element={<FinanceTools />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
         </div>
       </div>
-      
-      <div style={{ 
-        border: '1px solid #ddd', 
-        borderRadius: '8px', 
-        height: '500px', 
-        overflowY: 'auto',
-        padding: '20px',
-        marginBottom: '20px',
-        backgroundColor: '#f9f9f9'
-      }}>
-        {messages.map((message) => (
-          <div 
-            key={message.id} 
-            style={{ 
-              marginBottom: '15px',
-              padding: '10px',
-              borderRadius: '8px',
-              backgroundColor: message.sender === 'user' ? '#007bff' : '#e9ecef',
-              color: message.sender === 'user' ? 'white' : 'black',
-              marginLeft: message.sender === 'user' ? '50px' : '0',
-              marginRight: message.sender === 'bot' ? '50px' : '0'
-            }}
-          >
-            {message.text}
-          </div>
-        ))}
-        
-        {isLoading && (
-          <div style={{ 
-            padding: '10px', 
-            fontStyle: 'italic', 
-            color: '#666' 
-          }}>
-            Bot is typing...
-          </div>
-        )}
-      </div>
-      
-      <form onSubmit={handleSendMessage} style={{ display: 'flex', gap: '10px' }}>
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask about personal finance..."
-          style={{ 
-            flex: 1, 
-            padding: '12px', 
-            border: '1px solid #ddd', 
-            borderRadius: '4px',
-            fontSize: '16px'
-          }}
-          disabled={isLoading}
-        />
-        <button 
-          type="submit" 
-          disabled={isLoading || !input.trim()}
-          style={{
-            padding: '12px 24px',
-            backgroundColor: '#007bff',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '16px'
-          }}
-        >
-          Send
-        </button>
-      </form>
-    </div>
+    </BrowserRouter>
   );
 };
 

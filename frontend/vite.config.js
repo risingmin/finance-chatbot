@@ -22,26 +22,14 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: 'https://finance-chatbot-api.onrender.com',
+        target: process.env.VITE_DEV_API_TARGET || 'http://localhost:8000',
         changeOrigin: true,
-        secure: true,
-        configure: (proxy, _options) => {
-          proxy.on('error', (err, _req, _res) => {
-            console.log('proxy error', err);
-          });
-          proxy.on('proxyReq', (proxyReq, req, _res) => {
-            console.log('Sending Request:', req.method, req.url);
-          });
-          proxy.on('proxyRes', (proxyRes, req, _res) => {
-            console.log('Received Response:', proxyRes.statusCode, req.url);
-          });
-        }
+        secure: false
       },
-      // Added health check proxy to forward to backend in dev
       '/health': {
-        target: 'https://finance-chatbot-api.onrender.com',
+        target: process.env.VITE_DEV_API_TARGET || 'http://localhost:8000',
         changeOrigin: true,
-        secure: true
+        secure: false
       }
     },
     cors: true

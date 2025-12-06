@@ -1,61 +1,45 @@
 const axios = require('axios');
 
-const MODEL_NAME = "gemini-1.5-flash";
+// Generic LLM caller. Configure via env to work with hosted LLaMA or similar.
+const LLM_API_URL = process.env.LLM_API_URL;
+const LLM_API_KEY = process.env.LLM_API_KEY;
 
+/**
+ * Call the configured LLM endpoint and return text.
+ * Expects the provider to accept { prompt } and respond with { reply } or { text }.
+ */
 const getResponse = async (prompt) => {
+  if (!LLM_API_URL) throw new Error('LLM_API_URL is not set');
+  if (!LLM_API_KEY) throw new Error('LLM_API_KEY is not set');
+
   try {
-    const apiKey = process.env.GEMINI_API_KEY || 'AIzaSyBB8eg_6VCS9OJWC_aBHL4b1n2UOv8b9qo';
-    
-    if (!apiKey) {
-      throw new Error('GEMINI_API_KEY environment variable is required');
-    }
-
-    console.log('Making request to Gemini API with model:', MODEL_NAME);
-    console.log('API Key available:', !!apiKey);
-
-    const response = await axios.post(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`, {
-      contents: [{
-        parts: [{
-          text: `You are a helpful personal finance assistant. Provide clear, practical advice about budgeting, saving, investing, and financial planning. Keep responses concise and actionable.
-
-User question: ${prompt}`
-        }]
-      }],
-      generationConfig: {
-        temperature: 0.7,
-        topK: 40,
-        topP: 0.95,
-        maxOutputTokens: 1024,
+    const response = await axios.post(
+      LLM_API_URL,
+      { prompt },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${LLM_API_KEY}`
+        },
+        timeout: 30000
       }
-    }, {
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      timeout: 30000
-    });
+    );
 
-    console.log('Gemini API response status:', response.status);
-    console.log('Response data structure:', Object.keys(response.data || {}));
-
-    if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-      return response.data.candidates[0].content.parts[0].text.trim();
-    } else {
-      console.error('Unexpected response format:', JSON.stringify(response.data, null, 2));
-      throw new Error('Invalid response format from Gemini API');
+    const data = response.data || {};
+    const reply = data.reply || data.text || data.response || data.message;
+    if (!reply) {
+      throw new Error('Invalid response format from LLM API');
     }
+    return reply.toString().trim();
   } catch (error) {
-    console.error('Gemini API error:', error.message);
-    if (error.response) {
-      console.error('API response status:', error.response.status);
-      console.error('API response data:', error.response.data);
-    } else if (error.request) {
-      console.error('No response received from Gemini API');
-    }
+    const status = error.response?.status;
+    const details = error.response?.data;
+    console.error('LLM API error:', status || error.message);
+    if (details) console.error('LLM response body:', details);
     throw error;
   }
 };
 
 module.exports = {
-  getResponse,
-  MODEL_NAME
+  getResponse
 };
