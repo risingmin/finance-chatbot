@@ -17,14 +17,18 @@ export default defineConfig({
     emptyOutDir: true
   },
   server: {
-    port: 3000,
-    strictPort: true,
+    port: 5173,
+    strictPort: false,
     host: true,
     proxy: {
       '/api': {
         target: process.env.VITE_DEV_API_TARGET || 'http://localhost:8000',
         changeOrigin: true,
-        secure: false
+        secure: false,
+        rewrite: (path) => {
+          console.log(`[Vite Proxy] ${path} -> ${process.env.VITE_DEV_API_TARGET || 'http://localhost:8000'}${path}`);
+          return path;
+        }
       },
       '/health': {
         target: process.env.VITE_DEV_API_TARGET || 'http://localhost:8000',

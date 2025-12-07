@@ -1,45 +1,103 @@
 const axios = require('axios');
-
-// Generic LLM caller. Configure via env to work with hosted LLaMA or similar.
-const LLM_API_URL = process.env.LLM_API_URL;
-const LLM_API_KEY = process.env.LLM_API_KEY;
+const llmConfig = require('../config/llmConfig');
 
 /**
- * Call the configured LLM endpoint and return text.
- * Expects the provider to accept { prompt } and respond with { reply } or { text }.
+ * Call the LLM with a single user message
+ * (for backward compatibility)
  */
-const getResponse = async (prompt) => {
-  if (!LLM_API_URL) throw new Error('LLM_API_URL is not set');
-  if (!LLM_API_KEY) throw new Error('LLM_API_KEY is not set');
+const getResponse = async (userMessage) => {
+  return getResponseWithMessages([
+    { role: 'user', content: userMessage }
+  ]);
+};
 
+/**
+ * Call the LLM (Ollama only) with a full messages array
+ * Uses the OpenAI-compatible /chat/completions endpoint
+ */
+const getResponseWithMessages = async (messages) => {
   try {
+    if (llmConfig.provider !== 'ollama') {
+      throw new Error(`Only Ollama is supported. Current provider: ${llmConfig.provider}`);
+    }
+
+    console.log(`📤 [Ollama] Calling: ${llmConfig.endpoint}`);
+    console.log(`📝 Model: ${llmConfig.model}`);
+    console.log(`💬 Messages: ${messages.length} message(s)`);
+    
+    // Build request headers
+    const headers = {
+      'Content-Type': 'application/json',
+    };
+
+    // Call Ollama's OpenAI-compatible /chat/completions endpoint
     const response = await axios.post(
-      LLM_API_URL,
-      { prompt },
+      llmConfig.endpoint,
       {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${LLM_API_KEY}`
-        },
-        timeout: 30000
+        model: llmConfig.model,
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a friendly personal finance coach. Give concrete advice on budgeting, saving, debt payoff, and investing. Be realistic and practical.'
+          },
+          ...messages
+        ],
+        temperature: 0.7,
+        max_tokens: 1000,
+        stream: false
+      },
+      {
+        headers,
+        timeout: 120000, // 120s timeout for Ollama (first call can be slow)
       }
     );
 
     const data = response.data || {};
-    const reply = data.reply || data.text || data.response || data.message;
-    if (!reply) {
-      throw new Error('Invalid response format from LLM API');
+    console.log(`✅ Ollama response received (status: ${response.status})`);
+    
+    // Extract reply from OpenAI-compatible response: choices[0].message.content
+    const reply = data.choices?.[0]?.message?.content;
+    if (reply) {
+      console.log(`✅ Extracted reply (${reply.length} chars)`);
+      return reply.toString().trim();
     }
-    return reply.toString().trim();
+    
+    // If we got here, response structure was unexpected
+    console.error('❌ Invalid response structure from Ollama');
+    console.error('📋 Expected: choices[0].message.content');
+    console.error('📋 Received:', JSON.stringify(data, null, 2));
+    throw new Error('Invalid response format from Ollama');
   } catch (error) {
+    // Log detailed error information for debugging
     const status = error.response?.status;
-    const details = error.response?.data;
-    console.error('LLM API error:', status || error.message);
-    if (details) console.error('LLM response body:', details);
-    throw error;
+    const errorData = error.response?.data;
+    const message = error.message;
+    
+    console.error(`❌ [Ollama] LLM API error`);
+    console.error(`   Status: ${status || 'network error'}`);
+    console.error(`   Message: ${message}`);
+    
+    if (errorData) {
+      console.error(`   Response: ${JSON.stringify(errorData)}`);
+    }
+
+    // Check if Ollama is running
+    if (status === 404 || message.includes('ECONNREFUSED')) {
+      console.error('❌ Ollama is not running or not accessible at', llmConfig.baseUrl);
+      const err = new Error('Ollama service is not running. Please start it with: ollama serve');
+      err.status = 503;
+      throw err;
+    }
+
+    // Re-throw with context for the route handler
+    const err = new Error(message);
+    err.status = status || 500;
+    err.details = errorData;
+    throw err;
   }
 };
 
 module.exports = {
-  getResponse
+  getResponse,
+  getResponseWithMessages
 };

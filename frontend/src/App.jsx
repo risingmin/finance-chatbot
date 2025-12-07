@@ -4,7 +4,8 @@ import ChatInterface from './components/ChatInterface';
 import FinanceTools from './components/FinanceTools';
 import HomePage from './components/HomePage';
 import './index.css';
-import './styles/components.css';
+import './styles/app-layout.css';
+import './styles/pages.css';
 
 const navItems = [
   { path: '/', label: 'Home', exact: true },
@@ -15,10 +16,10 @@ const navItems = [
 ];
 
 const Sidebar = () => (
-  <aside className="sidebar">
+  <aside className="app-sidebar">
     <div className="sidebar-header">
-      <div className="sidebar-title">Personal Finance AI</div>
-      <div className="sidebar-subtitle">Plan · Budget · Grow</div>
+      <div className="sidebar-logo">💸</div>
+      <div className="sidebar-title">Finance Coach</div>
     </div>
     <nav className="sidebar-nav">
       {navItems.map((item) => (
@@ -26,13 +27,12 @@ const Sidebar = () => (
           key={item.path}
           to={item.path}
           className={({ isActive }) =>
-            `nav-item ${isActive ? 'active' : ''} ${item.disabled ? 'disabled' : ''}`
+            `nav-item ${isActive ? 'nav-item-active' : ''} ${item.disabled ? 'nav-item-disabled' : ''}`
           }
           onClick={(e) => item.disabled && e.preventDefault()}
         >
-          <span className="nav-dot" aria-hidden />
-          <span>{item.label}</span>
-          {item.disabled && <span className="pill">Soon</span>}
+          <span className="nav-label">{item.label}</span>
+          {item.disabled && <span className="nav-badge">Soon</span>}
         </NavLink>
       ))}
     </nav>
@@ -42,9 +42,9 @@ const Sidebar = () => (
 const App = () => {
   return (
     <BrowserRouter>
-      <div className="app-frame">
+      <div className="app-layout">
         <Sidebar />
-        <div className="main-area">
+        <div className="main-content">
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/chat" element={<ChatInterface />} />
