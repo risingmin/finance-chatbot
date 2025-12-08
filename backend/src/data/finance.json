@@ -1,0 +1,17 @@
+{
+  "users": {
+    "demo-user": {
+      "transactions": [
+        {
+          "id": "f7c39287-6357-4a0d-bcc6-1e24ca65aa73",
+          "userId": "demo-user",
+          "description": "Uncategorized expense",
+          "amount": 1,
+          "category": "other",
+          "timestamp": "2025-12-08T16:35:32.403Z"
+        }
+      ],
+      "goal": null
+    }
+  }
+}

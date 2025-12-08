@@ -98,6 +98,11 @@ You should see:
    POST /api/chat      - Chat with LLM
    GET  /api/test-llm  - Test LLM connection
    GET  /api/finance   - Finance data
+   POST /api/transactions - Log an expense
+   GET  /api/transactions  - List expenses
+   GET  /api/summary       - Monthly summary
+   POST /api/goal          - Save savings goal
+   GET  /api/goal          - Fetch savings goal
 ==================================================
 ```
 
@@ -176,6 +181,76 @@ Test LLM connectivity.
   "response": "Hello! I am working correctly."
 }
 ```
+
+### POST /api/transactions
+Log an expense like `"Starbucks 8.50"`. If heuristics cannot categorize, the LLM picks one of `food|transportation|shopping|bills|other`.
+
+**Request:**
+```json
+{
+   "userId": "demo-user",
+   "inputText": "Uber to airport 32"
+}
+```
+
+**Response:**
+```json
+{
+   "success": true,
+   "transaction": {
+      "id": "...",
+      "userId": "demo-user",
+      "description": "Uber to airport",
+      "amount": 32,
+      "category": "transportation",
+      "timestamp": "2025-12-08T00:00:00.000Z"
+   }
+}
+```
+
+### GET /api/summary
+Return monthly totals per user. `month` accepts either 0- or 1-based values.
+
+**Example:** `/api/summary?userId=demo-user&month=12&year=2025`
+
+**Response:**
+```json
+{
+   "success": true,
+   "summary": {
+      "total": 123.45,
+      "byCategory": {
+         "food": 45,
+         "transportation": 60,
+         "shopping": 0,
+         "bills": 18.45,
+         "other": 0
+      }
+   }
+}
+```
+
+### POST /api/goal
+Store a savings goal.
+```json
+{
+   "userId": "demo-user",
+   "targetMonthlyAmount": 500,
+   "deadline": "2025-12-31"
+}
+```
+
+### POST /api/goal/suggestions
+Ask the LLM to suggest 1–3 practical adjustments based on the current month summary and the saved goal.
+```json
+{
+   "userId": "demo-user"
+}
+```
+
+## 💾 Data persistence
+- Expenses and goals are stored in `backend/src/data/finance.json` (per user) and are loaded on server start.
+- Data is written asynchronously with a temp-file rename for basic durability.
 
 ## ⚙️ Configuration
 

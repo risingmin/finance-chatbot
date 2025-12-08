@@ -149,3 +149,11 @@ const testConnection = () => {
 try { testConnection(); } catch (_) { /* ignore */ }
 
 export default api;
+
+// Convenience helpers for new finance endpoints
+export const logTransaction = (payload) => api.post('/api/transactions', payload);
+export const fetchTransactions = (params) => api.get('/api/transactions', { params });
+export const fetchSummary = (params) => api.get('/api/summary', { params });
+export const saveGoal = (payload) => api.post('/api/goal', payload);
+export const fetchGoal = (params) => api.get('/api/goal', { params });
+export const fetchGoalSuggestions = (payload) => api.post('/api/goal/suggestions', payload);

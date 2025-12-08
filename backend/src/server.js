@@ -62,7 +62,10 @@ app.get('/', (req, res) => {
       health: '/health',
       chat: '/api/chat',
       testLLM: '/api/test-llm',
-      finance: '/api/finance'
+      finance: '/api/finance',
+      transactions: '/api/transactions',
+      summary: '/api/summary',
+      goal: '/api/goal'
     },
     timestamp: new Date().toISOString()
   });
@@ -86,7 +89,12 @@ app.use((req, res) => {
       'GET  /health',
       'POST /api/chat',
       'GET  /api/test-llm',
-      'GET  /api/finance'
+      'GET  /api/finance',
+      'GET  /api/transactions',
+      'POST /api/transactions',
+      'GET  /api/summary',
+      'GET  /api/goal',
+      'POST /api/goal'
     ]
   });
 });
@@ -145,6 +153,11 @@ app.listen(PORT, () => {
   console.log(`   POST /api/chat      - Chat with LLM`);
   console.log(`   GET  /api/test-llm  - Test LLM connection`);
   console.log(`   GET  /api/finance   - Finance data`);
+  console.log(`   POST /api/transactions - Log an expense`);
+  console.log(`   GET  /api/transactions  - List expenses`);
+  console.log(`   GET  /api/summary       - Monthly summary`);
+  console.log(`   POST /api/goal          - Save savings goal`);
+  console.log(`   GET  /api/goal          - Fetch savings goal`);
   console.log('='.repeat(50) + '\n');
 });
 

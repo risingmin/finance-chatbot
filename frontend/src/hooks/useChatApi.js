@@ -10,6 +10,9 @@ const useChatApi = () => {
     const sendMessage = useCallback(async (message) => {
         setLoading(true);
         setError(null);
+
+        // Simple demo user id; in a real app, pull from auth context
+        const userId = 'demo-user';
         
         // Add user message immediately to the UI
         setMessages(prev => [...prev, { text: message, sender: 'user' }]);
@@ -43,7 +46,7 @@ const useChatApi = () => {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ messages: messagesArray }),
+                body: JSON.stringify({ messages: messagesArray, userId }),
                 signal: AbortSignal.timeout(120000) // 120s timeout for Ollama (first call can be slow)
             });
 
