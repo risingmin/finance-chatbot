@@ -7,6 +7,14 @@ const getSavingsGoal = (currentSavings, targetSavings) => {
 };
 
 const calculateDebtToIncomeRatio = (debt, income) => {
+  if (typeof income !== 'number' || income === 0 || !Number.isFinite(income)) {
+    throw new Error('Income must be a finite, non-zero number.');
+  }
+
+  if (typeof debt !== 'number' || !Number.isFinite(debt)) {
+    throw new Error('Debt must be a finite number.');
+  }
+
   return (debt / income) * 100;
 };
 
